@@ -12,6 +12,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import { common, createLowlight } from 'lowlight';
+import { WhiteboardPreviewExtension } from './whiteboard-preview-extension';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -94,7 +95,8 @@ export function getEditorExtensions(placeholder = 'Start writing...') {
       placeholder,
       showOnlyWhenEditable: true,
       showOnlyCurrent: false
-    })
+    }),
+    WhiteboardPreviewExtension
   ];
 }
 

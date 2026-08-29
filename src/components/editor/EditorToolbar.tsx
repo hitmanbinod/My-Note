@@ -4,6 +4,8 @@ import IconButton from '@/components/ui/IconButton';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { whiteboardsRepository } from '@/lib/db/whiteboards.repository';
 
 interface EditorToolbarProps {
   editor: Editor;
@@ -11,7 +13,9 @@ interface EditorToolbarProps {
 
 function EditorToolbar({ editor }: EditorToolbarProps) {
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showBoardModal, setShowBoardModal] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  const boards = useLiveQuery(() => whiteboardsRepository.list(), [], []);
 
   const handleSetLink = useCallback(() => {
     const previousUrl = editor.getAttributes('link').href;
@@ -29,9 +33,14 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
     setLinkUrl('');
   };
 
+  const insertBoard = (boardId: string) => {
+    editor.chain().focus().insertContent({ type: 'whiteboardPreview', attrs: { boardId } }).run();
+    setShowBoardModal(false);
+  };
+
   return (
     <>
-      <div className="sticky top-[72px] z-10 flex flex-nowrap gap-1 overflow-x-auto border-b border-[var(--line)] bg-[color:var(--panel)]/95 px-3 py-2 backdrop-blur-lg sm:px-5">
+      <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-[var(--line)] bg-[color:var(--panel)]/95 px-3 py-2 backdrop-blur-lg sm:px-5">
         {/* Text formatting */}
         <div className="flex gap-0.5 border-r border-[var(--line)] pr-2">
           <IconButton
@@ -124,6 +133,11 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
             variant={editor.isActive('blockquote') ? 'primary' : 'ghost'}
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
           />
+          <IconButton
+            icon={<BoardIcon />}
+            label="Insert whiteboard"
+            onClick={() => setShowBoardModal(true)}
+          />
         </div>
       </div>
 
@@ -147,6 +161,26 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={showBoardModal} onClose={() => setShowBoardModal(false)} title="Insert whiteboard" size="md">
+        {boards.length ? (
+          <div className="space-y-2">
+            {boards.map(board => (
+              <button
+                key={board.id}
+                type="button"
+                onClick={() => insertBoard(board.id)}
+                className="flex w-full items-center gap-3 rounded-xl border border-[var(--line)] p-3 text-left hover:bg-[var(--panel-soft)]"
+              >
+                {board.previewDataUrl ? <img src={board.previewDataUrl} alt="" className="h-14 w-20 rounded bg-white object-contain" /> : <span className="flex h-14 w-20 items-center justify-center rounded bg-[var(--panel-soft)]"><BoardIcon /></span>}
+                <span className="truncate text-sm font-semibold text-[var(--ink)]">{board.title}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">Create a whiteboard first, then insert it here.</p>
+        )}
       </Modal>
     </>
   );
@@ -228,6 +262,12 @@ const CodeIcon = () => (
 const QuoteIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+  </svg>
+);
+
+const BoardIcon = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.5 4.5h15v15h-15zM8 15l3-4 2 2 3-4" />
   </svg>
 );
 
