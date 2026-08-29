@@ -44,7 +44,7 @@ Run:
 
 ```powershell
 npm install @excalidraw/excalidraw@0.18.1
-npm install --save-dev vitest@4.1.11 jsdom@30.0.1 fake-indexeddb@6.2.5 @testing-library/react@16.3.3 @testing-library/dom@10.4.1
+npm install --save-dev vitest@1.6.1 jsdom@30.0.1 fake-indexeddb@6.2.5 @testing-library/react@16.3.3 @testing-library/dom@10.4.1
 ```
 
 Add scripts:

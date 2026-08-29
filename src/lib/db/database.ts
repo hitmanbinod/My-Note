@@ -4,6 +4,7 @@ import { Folder } from '@/types/folder';
 import { SyncOperation } from '@/types/sync';
 import { AppSettings } from '@/types/settings';
 import { AttachmentBlob } from '@/types/attachment';
+import { Whiteboard } from '@/types/whiteboard';
 
 export class NotesDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -11,6 +12,7 @@ export class NotesDatabase extends Dexie {
   attachmentBlobs!: Table<AttachmentBlob, string>;
   syncOperations!: Table<SyncOperation, string>;
   settings!: Table<AppSettings, string>;
+  whiteboards!: Table<Whiteboard, string>;
 
   constructor() {
     super('NotesDB');
@@ -21,6 +23,15 @@ export class NotesDatabase extends Dexie {
       attachmentBlobs: 'id, noteId, driveFileId, cachedAt',
       syncOperations: 'id, status, timestamp, entityId, [entityType+status]',
       settings: 'id'
+    });
+
+    this.version(2).stores({
+      notes: 'id, folderId, createdAt, updatedAt, accessedAt, isDeleted, isPinned, isStarred, isArchived, syncStatus, driveFileId, *tags',
+      folders: 'id, parentId, driveFileId, syncStatus',
+      attachmentBlobs: 'id, noteId, driveFileId, cachedAt',
+      syncOperations: 'id, status, timestamp, entityId, [entityType+status]',
+      settings: 'id',
+      whiteboards: 'id, title, createdAt, updatedAt'
     });
   }
 
@@ -57,26 +68,33 @@ export class NotesDatabase extends Dexie {
   }
 
   async clearAllData(): Promise<void> {
-    await this.transaction('rw', this.notes, this.folders, this.attachmentBlobs, this.syncOperations, async () => {
+    await this.transaction('rw', this.notes, this.folders, this.attachmentBlobs, this.syncOperations, this.whiteboards, async () => {
       await this.notes.clear();
       await this.folders.clear();
       await this.attachmentBlobs.clear();
       await this.syncOperations.clear();
+      await this.whiteboards.clear();
     });
   }
 
-  async getStorageUsage(): Promise<{ notes: number; attachments: number; total: number }> {
+  async getStorageUsage(): Promise<{ notes: number; attachments: number; whiteboards: number; total: number }> {
     const notesCount = await this.notes.count();
     const attachmentsCount = await this.attachmentBlobs.count();
+    const whiteboards = await this.whiteboards.toArray();
     
     // Estimate storage (rough calculation)
     const notesSize = notesCount * 10000; // ~10KB per note estimate
     const attachmentsSize = attachmentsCount * 500000; // ~500KB per attachment estimate
+    const whiteboardsSize = whiteboards.reduce(
+      (total, board) => total + board.sceneJson.length * 2 + (board.previewDataUrl?.length || 0) * 2,
+      0
+    );
     
     return {
       notes: notesSize,
       attachments: attachmentsSize,
-      total: notesSize + attachmentsSize
+      whiteboards: whiteboardsSize,
+      total: notesSize + attachmentsSize + whiteboardsSize
     };
   }
 }
