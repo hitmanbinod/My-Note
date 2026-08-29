@@ -31,9 +31,9 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
 
   return (
     <>
-      <div className="border-b border-gray-200 dark:border-gray-700 p-2 flex flex-wrap gap-1">
+      <div className="sticky top-[72px] z-10 flex flex-nowrap gap-1 overflow-x-auto border-b border-[var(--line)] bg-[color:var(--panel)]/95 px-3 py-2 backdrop-blur-lg sm:px-5">
         {/* Text formatting */}
-        <div className="flex gap-1 border-r border-gray-200 dark:border-gray-700 pr-2">
+        <div className="flex gap-0.5 border-r border-[var(--line)] pr-2">
           <IconButton
             icon={<BoldIcon />}
             label="Bold (Ctrl+B)"
@@ -61,7 +61,7 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
         </div>
 
         {/* Headings */}
-        <div className="flex gap-1 border-r border-gray-200 dark:border-gray-700 pr-2">
+        <div className="flex gap-0.5 border-r border-[var(--line)] px-2">
           <IconButton
             icon={<H1Icon />}
             label="Heading 1"
@@ -83,7 +83,7 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
         </div>
 
         {/* Lists */}
-        <div className="flex gap-1 border-r border-gray-200 dark:border-gray-700 pr-2">
+        <div className="flex gap-0.5 border-r border-[var(--line)] px-2">
           <IconButton
             icon={<BulletListIcon />}
             label="Bullet List"
@@ -105,7 +105,7 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
         </div>
 
         {/* Other */}
-        <div className="flex gap-1">
+        <div className="flex gap-0.5 pl-1">
           <IconButton
             icon={<LinkIcon />}
             label="Link (Ctrl+K)"

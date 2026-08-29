@@ -9,25 +9,19 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      includeAssets: ['icon.svg', 'robots.txt'],
       manifest: {
         name: 'My Notes',
         short_name: 'Notes',
-        description: 'Secure note-taking with Google Drive sync',
-        theme_color: '#4285f4',
-        background_color: '#ffffff',
+        description: 'A private, local-first writing space that works offline.',
+        theme_color: '#635bdb',
+        background_color: '#f6f5f2',
         display: 'standalone',
         icons: [
           {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
+            src: 'icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           }
         ]
