@@ -3,7 +3,7 @@ import { Note } from '@/types';
 import NoteCard from './NoteCard';
 import Spinner from '@/components/ui/Spinner';
 
-function NoteList({ notes, loading, view, trash, emptyTitle, emptyMessage }: { notes: Note[]; loading?: boolean; view: 'list' | 'grid'; trash?: boolean; emptyTitle: string; emptyMessage: string }) {
+function NoteList({ notes, loading, view = 'list', trash, emptyTitle = 'Nothing here yet', emptyMessage }: { notes: Note[]; loading?: boolean; view?: 'list' | 'grid'; trash?: boolean; emptyTitle?: string; emptyMessage: string }) {
   if (loading) return <div className="app-panel flex min-h-[360px] items-center justify-center rounded-2xl"><Spinner size="lg" /></div>;
   if (!notes.length) return (
     <div className="app-panel flex min-h-[390px] flex-col items-center justify-center rounded-2xl px-6 text-center">

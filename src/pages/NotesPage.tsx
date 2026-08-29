@@ -39,34 +39,40 @@ function NotesListView({ filter }: { filter?: any }) {
 
   const getEmptyMessage = () => {
     if (searchQuery) return 'No notes found matching your search';
-    if (filter?.isStarred) return 'No starred notes yet';
-    if (filter?.isArchived) return 'No archived notes';
-    if (filter?.isDeleted) return 'Trash is empty';
-    return 'No notes yet. Create your first note!';
+    if (filter?.isStarred) return 'Star your favorite notes to find them here';
+    if (filter?.isArchived) return 'Archived notes are kept here';
+    if (filter?.isDeleted) return 'Notes you delete will appear here for recovery';
+    return 'Create your first note to get started!';
   };
 
   const isLoading = searchQuery ? isSearching : loading;
+  const emptyTitle = filter?.isStarred
+    ? 'No starred notes'
+    : filter?.isArchived
+      ? 'No archived notes'
+      : filter?.isDeleted
+        ? 'Trash is empty'
+        : searchQuery
+          ? 'No matching notes'
+          : 'No notes yet';
 
   return (
-    <div className="max-w-7xl mx-auto min-h-screen">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {getTitle()}
-          </h1>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {displayNotes.length} {displayNotes.length === 1 ? 'note' : 'notes'}
-          </span>
-        </div>
+    <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">{getTitle()}</h1>
+        <span className="text-sm text-[var(--muted)]">
+          {displayNotes.length} {displayNotes.length === 1 ? 'note' : 'notes'}
+        </span>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 min-h-[500px]">
-        <NoteList
-          notes={displayNotes}
-          loading={isLoading}
-          emptyMessage={getEmptyMessage()}
-        />
-      </div>
+      <NoteList
+        notes={displayNotes}
+        loading={isLoading}
+        view="list"
+        trash={filter?.isDeleted}
+        emptyTitle={emptyTitle}
+        emptyMessage={getEmptyMessage()}
+      />
     </div>
   );
 }
@@ -89,28 +95,28 @@ function NotesFolderView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto min-h-screen">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+    <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--ink)]">
           {folder?.color && (
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
+            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
               <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           )}
           {folder?.name || 'Loading Folder...'}
         </h1>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
+        <span className="text-sm text-[var(--muted)]">
           {displayNotes.length} {displayNotes.length === 1 ? 'note' : 'notes'}
         </span>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 min-h-[500px]">
-        <NoteList
-          notes={displayNotes}
-          loading={isLoading}
-          emptyMessage={getEmptyMessage()}
-        />
-      </div>
+      <NoteList
+        notes={displayNotes}
+        loading={isLoading}
+        view="list"
+        emptyTitle="This folder is empty"
+        emptyMessage={getEmptyMessage()}
+      />
     </div>
   );
 }

@@ -15,16 +15,15 @@ function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
-      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-      
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
-        <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-800">
+    <div className="h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--ink)]">
+      {/* Sidebar is fixed at 272px on desktop; reserve that space so the header and content never sit under it */}
+      <div className="flex h-full min-h-0 flex-col lg:pl-[272px]">
+        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </div>
   );
 }
