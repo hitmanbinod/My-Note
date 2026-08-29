@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/database';
-import { arrayBufferToBase64 } from '@/lib/utils/crypto';
+import { arrayBufferToBase64, toArrayBuffer } from '@/lib/utils/crypto';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
@@ -17,7 +17,7 @@ async function generatePKCE(): Promise<{ verifier: string; challenge: string }> 
   // Generate random verifier
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  const verifier = arrayBufferToBase64(array)
+  const verifier = arrayBufferToBase64(toArrayBuffer(array))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');

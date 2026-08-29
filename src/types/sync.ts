@@ -22,7 +22,7 @@ export interface SyncOperation {
 
 export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'paused';
 
-export interface SyncStatus {
+export interface SyncSummary {
   state: SyncState;
   lastSyncTime: number | null;
   pendingOperations: number;
@@ -38,7 +38,7 @@ export interface DriveFile {
 }
 
 export interface ConflictResolution {
-  localNote: any;
-  remoteNote: any;
+  localNote: unknown;
+  remoteNote: unknown;
   resolution: 'keep_local' | 'keep_remote' | 'keep_both';
 }

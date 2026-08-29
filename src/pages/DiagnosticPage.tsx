@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { db, isDbReady } from '@/lib/db/database';
+import { AppSettings } from '@/types';
 
 interface DiagnosticInfo {
   dbReady: boolean;
-  settings: any;
+  settings: AppSettings | null | undefined;
   tablesCount: number;
   envVars: {
     clientId: string | undefined;

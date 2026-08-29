@@ -14,7 +14,8 @@ export function useFolders() {
     async () => {
       if (!dbReady) return [];
       try {
-        return await db.folders.orderBy('name').toArray();
+        const items = await db.folders.toArray();
+        return items.sort((a, b) => a.name.localeCompare(b.name));
       } catch (err) {
         console.error('Error loading folders:', err);
         return [];

@@ -8,7 +8,7 @@ export function useTheme() {
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    if (!settings) return;
+    if (!settings) return undefined;
 
     const theme = settings.theme;
 
@@ -25,6 +25,7 @@ export function useTheme() {
       return () => mediaQuery.removeEventListener('change', handler);
     } else {
       setEffectiveTheme(theme);
+      return undefined;
     }
   }, [settings]);
 

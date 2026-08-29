@@ -1,5 +1,5 @@
 import { Note, NoteSecrets, EncryptedNote } from '@/types';
-import { arrayBufferToBase64, base64ToArrayBuffer, generateSalt, generateIV } from '@/lib/utils/crypto';
+import { arrayBufferToBase64, base64ToArrayBuffer, generateIV, toArrayBuffer } from '@/lib/utils/crypto';
 
 /**
  * Derive encryption key from password using PBKDF2
@@ -17,7 +17,7 @@ export async function deriveKey(password: string, salt: Uint8Array): Promise<Cry
   return await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: toArrayBuffer(salt),
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -60,7 +60,7 @@ export async function encryptNote(note: Note, key: CryptoKey, salt: Uint8Array):
   
   // Encrypt
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
+    { name: 'AES-GCM', iv: toArrayBuffer(iv) },
     key,
     data
   );
@@ -73,10 +73,10 @@ export async function encryptNote(note: Note, key: CryptoKey, salt: Uint8Array):
   return {
     id: note.id,
     isEncrypted: true,
-    encryptedBlob: arrayBufferToBase64(encryptedData),
-    iv: arrayBufferToBase64(iv),
-    authTag: arrayBufferToBase64(authTag),
-    salt: arrayBufferToBase64(salt),
+    encryptedBlob: arrayBufferToBase64(toArrayBuffer(encryptedData)),
+    iv: arrayBufferToBase64(toArrayBuffer(iv)),
+    authTag: arrayBufferToBase64(toArrayBuffer(authTag)),
+    salt: arrayBufferToBase64(toArrayBuffer(salt)),
     encryptionVersion: 1,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
@@ -104,7 +104,7 @@ export async function decryptNote(encryptedNote: EncryptedNote, key: CryptoKey):
   // Decrypt
   try {
     const plaintext = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: new Uint8Array(iv) },
+      { name: 'AES-GCM', iv },
       key,
       ciphertext
     );
@@ -141,7 +141,7 @@ export async function encryptBlob(blob: Blob, key: CryptoKey): Promise<Blob> {
   const iv = generateIV();
   
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
+    { name: 'AES-GCM', iv: toArrayBuffer(iv) },
     key,
     data
   );
@@ -167,9 +167,9 @@ export async function decryptBlob(encryptedBlob: Blob, key: CryptoKey): Promise<
   
   try {
     const plaintext = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: iv },
+      { name: 'AES-GCM', iv: toArrayBuffer(iv) },
       key,
-      ciphertext
+      toArrayBuffer(ciphertext)
     );
     
     return new Blob([plaintext]);

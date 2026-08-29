@@ -2,146 +2,37 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { signOut } from '@/lib/auth/google-auth';
-import IconButton from '@/components/ui/IconButton';
 import SearchBar from './SearchBar';
 
-interface HeaderProps {
-  onMenuClick: () => void;
-  showSearch?: boolean;
-}
-
-function Header({ onMenuClick, showSearch = true }: HeaderProps) {
+function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleSignOut = async () => {
-    const message = user?.email 
-      ? 'Sign out of your Google account? Your local notes will remain on this device.'
-      : 'Clear your session? Your local notes will remain on this device.';
-    
-    if (confirm(message)) {
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
       await signOut();
-      setShowUserMenu(false);
-      navigate('/onboarding');
+      setMenuOpen(false);
+      navigate('/onboarding', { replace: true });
+    } catch {
+      setLoggingOut(false);
+      alert('Could not log out. Please try again.');
     }
   };
-
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-      <div className="flex items-center gap-4 px-4 py-3">
-        {/* Menu button (mobile) */}
-        <IconButton
-          icon={<MenuIcon />}
-          label="Menu"
-          onClick={onMenuClick}
-          className="lg:hidden"
-        />
-
-        {/* Logo */}
-        <Link to="/notes" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </div>
-          <span className="font-semibold text-gray-900 dark:text-white hidden sm:block">
-            My Notes
-          </span>
-        </Link>
-
-        {/* Search bar */}
-        {showSearch && (
-          <div className="flex-1 max-w-2xl">
-            <SearchBar />
-          </div>
-        )}
-
-        <div className="flex-1" />
-
-        {/* User menu */}
+    <header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-[var(--line)] bg-[color:var(--panel)]/90 px-4 backdrop-blur-xl sm:px-6 lg:px-10">
+      <button onClick={onMenuClick} className="pressable -ml-1 rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--panel-soft)] lg:hidden" aria-label="Open navigation"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="M4 7h16M4 12h16M4 17h16" /></svg></button>
+      <SearchBar />
+      <div className="ml-auto flex items-center gap-2">
+        <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Offline ready</span>
         <div className="relative">
-          <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="User menu"
-          >
-            {user?.photoUrl ? (
-              <img
-                src={user.photoUrl}
-                alt={user.name || 'User'}
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-                {user?.name?.[0] || user?.email?.[0] || 'U'}
-              </div>
-            )}
-          </button>
-
-          {showUserMenu && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowUserMenu(false)}
-              />
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-20">
-                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <p className="font-medium text-gray-900 dark:text-white truncate">
-                    {user?.name || 'Local User'}
-                  </p>
-                  {user?.email && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {user.email}
-                    </p>
-                  )}
-                  {!user?.email && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Offline Mode
-                    </p>
-                  )}
-                </div>
-                <Link
-                  to="/settings"
-                  className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => setShowUserMenu(false)}
-                >
-                  <SettingsIcon />
-                  Settings
-                </Link>
-                <button
-                  className="flex items-center gap-3 w-full px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={handleSignOut}
-                >
-                  <LogoutIcon />
-                  Sign out
-                </button>
-              </div>
-            </>
-          )}
+          <button onClick={() => setMenuOpen(!menuOpen)} className="pressable flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary-700 ring-1 ring-primary-200 dark:bg-primary-900/40 dark:text-primary-200 dark:ring-primary-800" aria-label="Open account menu">{user?.name?.[0] || user?.email?.[0] || 'M'}</button>
+          {menuOpen && <><button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} aria-label="Close account menu" /><div className="app-panel absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-xl p-1.5 text-sm"><div className="px-3 py-2.5"><p className="font-semibold text-[var(--ink)]">{user?.name || 'Local workspace'}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{user?.email || 'Stored on this device'}</p></div><Link to="/settings" onClick={() => setMenuOpen(false)} className="pressable flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--ink)] hover:bg-[var(--panel-soft)]"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.52-1H3v-4h.08A1.7 1.7 0 0 0 4.6 8.97a1.7 1.7 0 0 0-.34-1.88l-.06-.06L7.03 4.2l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.03 1.52 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" /></svg>Settings</Link><div className="my-1 border-t border-[var(--line)]" /><button onClick={handleLogout} disabled={loggingOut} className="pressable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/30"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4m4-3 4-4-4-4m4 4H9" /></svg>{loggingOut ? 'Logging out…' : 'Log out'}</button></div></>}
         </div>
       </div>
     </header>
   );
 }
-
-const MenuIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const LogoutIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-  </svg>
-);
-
 export default Header;

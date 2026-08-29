@@ -51,11 +51,12 @@ export class FoldersRepository {
   }
 
   async list(): Promise<Folder[]> {
-    return await db.folders.orderBy('name').toArray();
+    const folders = await db.folders.toArray();
+    return folders.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getChildren(parentId: string | null): Promise<Folder[]> {
-    return await db.folders.where('parentId').equals(parentId).toArray();
+    return await db.folders.toCollection().filter(folder => folder.parentId === parentId).toArray();
   }
 
   async getPendingSync(): Promise<Folder[]> {

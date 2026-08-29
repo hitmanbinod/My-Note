@@ -1,12 +1,12 @@
 import Dexie, { Table } from 'dexie';
-import { Note, EncryptedNote } from '@/types/note';
+import { Note } from '@/types/note';
 import { Folder } from '@/types/folder';
 import { SyncOperation } from '@/types/sync';
 import { AppSettings } from '@/types/settings';
 import { AttachmentBlob } from '@/types/attachment';
 
 export class NotesDatabase extends Dexie {
-  notes!: Table<Note | EncryptedNote, string>;
+  notes!: Table<Note, string>;
   folders!: Table<Folder, string>;
   attachmentBlobs!: Table<AttachmentBlob, string>;
   syncOperations!: Table<SyncOperation, string>;

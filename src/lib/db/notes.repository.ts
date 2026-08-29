@@ -1,5 +1,5 @@
 import { db } from './database';
-import { Note, NoteFilter, NoteSortField, NoteSortOrder, CreateNoteInput, UpdateNoteInput } from '@/types';
+import { Note, NoteFilter, NoteSortField, NoteSortOrder, CreateNoteInput } from '@/types';
 import { generateUUID } from '@/lib/utils/uuid';
 import { extractPlainText } from '@/lib/utils/text';
 
@@ -39,10 +39,6 @@ export class NotesRepository {
 
   async get(id: string): Promise<Note | undefined> {
     const note = await db.notes.get(id);
-    if (note) {
-      // Update access time
-      await db.notes.update(id, { accessedAt: Date.now() });
-    }
     return note as Note | undefined;
   }
 
@@ -95,7 +91,7 @@ export class NotesRepository {
 
     // Apply filters
     if (filter?.isDeleted !== undefined) {
-      collection = db.notes.where('isDeleted').equals(filter.isDeleted);
+      collection = collection.and(note => note.isDeleted === filter.isDeleted);
     }
 
     if (filter?.folderId !== undefined) {
@@ -119,15 +115,15 @@ export class NotesRepository {
     }
 
     // Sort
-    let notes = await collection.toArray() as Note[];
+    const notes = await collection.toArray() as Note[];
     
     notes.sort((a, b) => {
-      let aVal: any = a[sortBy];
-      let bVal: any = b[sortBy];
+      let aVal: string | number = a[sortBy];
+      let bVal: string | number = b[sortBy];
 
       if (sortBy === 'title') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
+        aVal = String(aVal).toLowerCase();
+        bVal = String(bVal).toLowerCase();
       }
 
       if (sortOrder === 'asc') {
@@ -144,11 +140,11 @@ export class NotesRepository {
     const lowerQuery = query.toLowerCase();
     
     return await db.notes
-      .where('isDeleted')
-      .equals(false)
+      .toCollection()
       .filter(note => {
-        const n = note as Note;
+        const n = note;
         return (
+          !n.isDeleted &&
           n.title.toLowerCase().includes(lowerQuery) ||
           n.plainTextContent.toLowerCase().includes(lowerQuery) ||
           n.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
@@ -159,17 +155,13 @@ export class NotesRepository {
 
   async countByFolder(folderId: string | null): Promise<number> {
     return await db.notes
-      .where('folderId')
-      .equals(folderId)
-      .and(note => !(note as Note).isDeleted)
+      .toCollection()
+      .filter(note => note.folderId === folderId && !note.isDeleted)
       .count();
   }
 
   async getAllTags(): Promise<string[]> {
-    const notes = await db.notes
-      .where('isDeleted')
-      .equals(false)
-      .toArray() as Note[];
+    const notes = await db.notes.toCollection().filter(note => !note.isDeleted).toArray();
     
     const tagSet = new Set<string>();
     notes.forEach(note => note.tags.forEach(tag => tagSet.add(tag)));
@@ -185,10 +177,7 @@ export class NotesRepository {
   }
 
   async emptyTrash(): Promise<void> {
-    const trashedNotes = await db.notes
-      .where('isDeleted')
-      .equals(true)
-      .toArray();
+    const trashedNotes = await db.notes.toCollection().filter(note => note.isDeleted).toArray();
 
     await db.notes.bulkDelete(trashedNotes.map(n => n.id));
   }

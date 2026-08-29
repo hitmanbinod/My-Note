@@ -107,7 +107,6 @@ export class SearchEngine {
 
     try {
       let results = this.miniSearch.search(query, {
-        ...this.miniSearch.options.searchOptions,
         filter: options?.folderId !== undefined
           ? (result) => result.folderId === options.folderId
           : undefined
@@ -134,7 +133,6 @@ export class SearchEngine {
 
     try {
       const results = this.miniSearch.autoSuggest(query, {
-        ...this.miniSearch.options.searchOptions,
         boost: { title: 5, tags: 3, content: 1 }
       });
 

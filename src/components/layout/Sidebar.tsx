@@ -1,228 +1,81 @@
+import { FormEvent, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useFolders } from '@/hooks/useFolders';
 import { useNotes } from '@/hooks/useNotes';
-import Badge from '@/components/ui/Badge';
-import IconButton from '@/components/ui/IconButton';
-import { useState } from 'react';
 import { folderService } from '@/services/FolderService';
 
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function Sidebar({ isOpen, onClose }: SidebarProps) {
+function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const location = useLocation();
   const { folders } = useFolders();
-  const [showFolderForm, setShowFolderForm] = useState(false);
+  const { notes: allNotes } = useNotes({ isDeleted: false, isArchived: false });
+  const { notes: starred } = useNotes({ isDeleted: false, isStarred: true });
+  const { notes: archived } = useNotes({ isDeleted: false, isArchived: true });
+  const { notes: trashed } = useNotes({ isDeleted: true });
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [folderName, setFolderName] = useState('');
 
-  // Count notes in different views
-  const { notes: allNotes = [] } = useNotes({ isDeleted: false });
-  const { notes: starredNotes = [] } = useNotes({ isDeleted: false, isStarred: true });
-  const { notes: archivedNotes = [] } = useNotes({ isDeleted: false, isArchived: true });
-  const { notes: trashedNotes = [] } = useNotes({ isDeleted: true });
-
-  const isActive = (path: string) => location.pathname === path;
+  const createFolder = async (event: FormEvent) => {
+    event.preventDefault();
+    const name = folderName.trim();
+    if (!name) return;
+    await folderService.createFolder({ name, color: '#776df1' });
+    setFolderName('');
+    setAddingFolder(false);
+  };
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-20 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed lg:static inset-y-0 left-0 z-30
-          w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
-          transform transition-transform duration-200 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          flex flex-col
-        `}
-      >
-        {/* New note button */}
-        <div className="p-4">
-          <Link
-            to="/notes/new"
-            onClick={onClose}
-            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Note
+      {isOpen && <button className="fixed inset-0 z-30 bg-black/35 backdrop-blur-[2px] lg:hidden" onClick={onClose} aria-label="Close navigation" />}
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-[var(--line)] bg-[var(--panel)] px-4 pb-4 pt-5 transition-transform duration-200 [transition-timing-function:var(--ease-out)] lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="mb-7 flex items-center justify-between px-2">
+          <Link to="/notes" onClick={onClose} className="pressable flex items-center gap-2.5">
+            <div className="flex h-9 w-9 rotate-[-3deg] items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm shadow-primary-600/25"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 4.75h8.5A2.5 2.5 0 0 1 18 7.25v9.5a2.5 2.5 0 0 1-2.5 2.5H7a2 2 0 0 1-2-2V6.75a2 2 0 0 1 2-2Z" /><path strokeLinecap="round" strokeWidth="1.8" d="M9 9h5M9 12.5h5M9 16h3" /></svg></div>
+            <div><p className="text-[15px] font-bold tracking-tight text-[var(--ink)]">My Notes</p><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--muted)]">Private workspace</p></div>
           </Link>
+          <button onClick={onClose} className="pressable rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--panel-soft)] lg:hidden" aria-label="Close navigation"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2">
+        <Link to="/notes/new" onClick={onClose} className="pressable mb-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm shadow-primary-600/20 hover:bg-primary-700">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg>New note <span className="ml-auto rounded-md bg-white/15 px-1.5 py-0.5 text-[10px]">⌘N</span>
+        </Link>
+
+        <nav className="flex-1 overflow-y-auto">
+          <p className="eyebrow mb-2 px-3 text-[var(--muted)]">Workspace</p>
           <div className="space-y-1">
-            <NavLink
-              to="/notes"
-              icon={<NotesIcon />}
-              label="All Notes"
-              count={allNotes.length}
-              isActive={isActive('/notes')}
-              onClick={onClose}
-            />
-            <NavLink
-              to="/notes/starred"
-              icon={<StarIcon />}
-              label="Starred"
-              count={starredNotes.length}
-              isActive={isActive('/notes/starred')}
-              onClick={onClose}
-            />
-            <NavLink
-              to="/notes/archived"
-              icon={<ArchiveIcon />}
-              label="Archive"
-              count={archivedNotes.length}
-              isActive={isActive('/notes/archived')}
-              onClick={onClose}
-            />
-            <NavLink
-              to="/notes/trash"
-              icon={<TrashIcon />}
-              label="Trash"
-              count={trashedNotes.length}
-              isActive={isActive('/notes/trash')}
-              onClick={onClose}
-            />
+            <NavItem to="/notes" label="All notes" count={allNotes.length} active={location.pathname === '/notes'} onClick={onClose} icon={<NotesIcon />} />
+            <NavItem to="/notes/starred" label="Starred" count={starred.length} active={location.pathname === '/notes/starred'} onClick={onClose} icon={<StarIcon />} />
+            <NavItem to="/notes/archived" label="Archive" count={archived.length} active={location.pathname === '/notes/archived'} onClick={onClose} icon={<ArchiveIcon />} />
+            <NavItem to="/notes/trash" label="Trash" count={trashed.length} active={location.pathname === '/notes/trash'} onClick={onClose} icon={<TrashIcon />} />
           </div>
 
-          {/* Folders */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between px-3 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                Folders
-              </h3>
-              <IconButton
-                icon={<PlusIcon />}
-                label="New folder"
-                onClick={() => setShowFolderForm(!showFolderForm)}
-                className="!p-1"
-              />
-            </div>
-
-            {showFolderForm && (
-              <div className="px-3 py-2">
-                <input
-                  type="text"
-                  placeholder="Folder name"
-                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  autoFocus
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                      await folderService.createFolder({ name: e.currentTarget.value.trim() });
-                      setShowFolderForm(false);
-                    }
-                    if (e.key === 'Escape') {
-                      setShowFolderForm(false);
-                    }
-                  }}
-                  onBlur={() => setShowFolderForm(false)}
-                />
-              </div>
-            )}
-
-            <div className="space-y-1">
-              {folders.map((folder) => (
-                <NavLink
-                  key={folder.id}
-                  to={`/notes/folder/${folder.id}`}
-                  icon={<FolderIcon color={folder.color} />}
-                  label={folder.name}
-                  isActive={location.pathname === `/notes/folder/${folder.id}`}
-                  onClick={onClose}
-                />
-              ))}
-              {folders.length === 0 && !showFolderForm && (
-                <p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                  No folders yet
-                </p>
-              )}
-            </div>
+          <div className="mb-2 mt-7 flex items-center justify-between px-3">
+            <p className="eyebrow text-[var(--muted)]">Folders</p>
+            <button className="pressable -mr-1 rounded-md p-1 text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]" onClick={() => setAddingFolder(true)} aria-label="Create folder"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg></button>
+          </div>
+          {addingFolder && <form onSubmit={createFolder} className="relative mb-2 px-2"><input autoFocus value={folderName} onChange={(event) => setFolderName(event.target.value)} onBlur={(event) => { if (!event.currentTarget.form?.contains(event.relatedTarget as Node) && !folderName.trim()) setAddingFolder(false); }} onKeyDown={(event) => { if (event.key === 'Escape') setAddingFolder(false); }} placeholder="Folder name" className="h-9 w-full rounded-lg border border-primary-300 bg-[var(--panel)] pl-3 pr-9 text-sm text-[var(--ink)] outline-none ring-4 ring-primary-500/10" /><button type="submit" className="pressable absolute right-3 top-1 flex h-7 w-7 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50" aria-label="Save folder"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="m5 12 4 4L19 6" /></svg></button></form>}
+          <div className="space-y-1">
+            {folders.map((folder) => <NavItem key={folder.id} to={`/notes/folder/${folder.id}`} label={folder.name} active={location.pathname === `/notes/folder/${folder.id}`} onClick={onClose} icon={<FolderIcon color={folder.color || '#776df1'} />} />)}
+            {!folders.length && !addingFolder && <button onClick={() => setAddingFolder(true)} className="pressable mx-2 flex w-[calc(100%-1rem)] items-center gap-2 rounded-lg border border-dashed border-[var(--line)] px-3 py-2 text-left text-xs text-[var(--muted)] hover:border-primary-300 hover:text-primary-600"><FolderIcon color="currentColor" /> Organize with a folder</button>}
           </div>
         </nav>
+
+        <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--ink)]"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="m5 12 4 4L19 6" /></svg></span>Saved locally</div>
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">Your notes remain available without an internet connection.</p>
+        </div>
       </aside>
     </>
   );
 }
 
-interface NavLinkProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  count?: number;
-  isActive: boolean;
-  onClick: () => void;
+function NavItem({ to, label, count, active, onClick, icon }: { to: string; label: string; count?: number; active: boolean; onClick: () => void; icon: React.ReactNode }) {
+  return <Link to={to} onClick={onClick} className={`pressable flex h-10 items-center gap-3 rounded-lg px-3 text-sm ${active ? 'bg-primary-50 font-semibold text-primary-700 dark:bg-primary-900/25 dark:text-primary-200' : 'font-medium text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]'}`}><span className={active ? 'text-primary-600 dark:text-primary-300' : ''}>{icon}</span><span className="min-w-0 flex-1 truncate">{label}</span>{count !== undefined && count > 0 && <span className="text-[11px] tabular-nums opacity-70">{count}</span>}</Link>;
 }
 
-function NavLink({ to, icon, label, count, isActive, onClick }: NavLinkProps) {
-  return (
-    <Link
-      to={to}
-      onClick={onClick}
-      className={`
-        flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
-        ${
-          isActive
-            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
-            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-        }
-      `}
-    >
-      <span className="flex-shrink-0">{icon}</span>
-      <span className="flex-1 font-medium text-sm">{label}</span>
-      {count !== undefined && count > 0 && (
-        <Badge variant={isActive ? 'info' : 'default'} className="text-xs">
-          {count}
-        </Badge>
-      )}
-    </Link>
-  );
-}
-
-// Icons
-const NotesIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-  </svg>
-);
-
-const ArchiveIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const FolderIcon = ({ color }: { color?: string | null }) => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={color ? { color } : undefined}>
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-);
+const NotesIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M6.5 3.75h9A2.75 2.75 0 0 1 18.25 6.5v11A2.75 2.75 0 0 1 15.5 20.25h-9a2.75 2.75 0 0 1-2.75-2.75v-11A2.75 2.75 0 0 1 6.5 3.75Z" /><path strokeLinecap="round" strokeWidth="1.8" d="M8 8h6M8 12h8M8 16h5" /></svg>;
+const StarIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinejoin="round" strokeWidth="1.8" d="m12 3 2.65 5.37 5.93.86-4.29 4.18 1.01 5.91L12 16.53l-5.3 2.79 1.01-5.91-4.29-4.18 5.93-.86L12 3Z" /></svg>;
+const ArchiveIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7.5h16M5.5 7.5v10.75A1.75 1.75 0 0 0 7.25 20h9.5a1.75 1.75 0 0 0 1.75-1.75V7.5M9.5 11h5M5 4h14a1 1 0 0 1 1 1v2.5H4V5a1 1 0 0 1 1-1Z" /></svg>;
+const TrashIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.5 7h15M9 7V4.5h6V7m2.75 0-.6 11.05a2 2 0 0 1-2 1.9h-6.3a2 2 0 0 1-2-1.9L6.25 7M10 11v5M14 11v5" /></svg>;
+const FolderIcon = ({ color }: { color: string }) => <svg className="h-[18px] w-[18px]" style={{ color }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3.75 7.25A2.25 2.25 0 0 1 6 5h4l2 2h6A2.25 2.25 0 0 1 20.25 9.25v8A2.75 2.75 0 0 1 17.5 20h-11a2.75 2.75 0 0 1-2.75-2.75v-10Z" /></svg>;
 
 export default Sidebar;

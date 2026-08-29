@@ -1,8 +1,8 @@
-import { Note, CreateNoteInput, UpdateNoteInput, NoteFilter, NoteSortField, NoteSortOrder } from '@/types';
+import { Note, EncryptedNote, CreateNoteInput, UpdateNoteInput, NoteFilter, NoteSortField, NoteSortOrder } from '@/types';
 import { notesRepository } from '@/lib/db/notes.repository';
 import { db } from '@/lib/db/database';
 import { encryptNote, decryptNote, deriveKey } from '@/lib/crypto/encryption';
-import { generateSalt, base64ToArrayBuffer } from '@/lib/utils/crypto';
+import { base64ToArrayBuffer } from '@/lib/utils/crypto';
 
 export class NoteService {
   private encryptionKey: CryptoKey | null = null;
@@ -38,7 +38,7 @@ export class NoteService {
       // Test the key by trying to decrypt a note (if any exist)
       const encryptedNotes = await db.notes.limit(1).toArray();
       if (encryptedNotes.length > 0 && 'isEncrypted' in encryptedNotes[0]! && encryptedNotes[0].isEncrypted) {
-        await decryptNote(encryptedNotes[0] as any, key);
+        await decryptNote(encryptedNotes[0] as unknown as EncryptedNote, key);
       }
       
       this.encryptionKey = key;
@@ -76,7 +76,7 @@ export class NoteService {
         if (settings?.encryptionSalt) {
           const salt = base64ToArrayBuffer(settings.encryptionSalt);
           const encryptedNote = await encryptNote(note, this.encryptionKey, new Uint8Array(salt));
-          await db.notes.update(note.id, encryptedNote as any);
+          await db.notes.put(encryptedNote as unknown as Note);
           console.log('🔐 Note encrypted');
         }
       }
@@ -105,7 +105,7 @@ export class NoteService {
       if (!this.encryptionKey) {
         throw new Error('Application is locked. Please unlock to view encrypted notes.');
       }
-      return await decryptNote(note as any, this.encryptionKey);
+      return await decryptNote(note as unknown as EncryptedNote, this.encryptionKey);
     }
     
     return note as Note;
@@ -128,7 +128,7 @@ export class NoteService {
       if (settings?.encryptionSalt) {
         const salt = base64ToArrayBuffer(settings.encryptionSalt);
         const encryptedNote = await encryptNote(updated, this.encryptionKey, new Uint8Array(salt));
-        await db.notes.update(id, encryptedNote as any);
+        await db.notes.put(encryptedNote as unknown as Note);
       }
     }
     
@@ -178,7 +178,7 @@ export class NoteService {
       if ('isEncrypted' in note && note.isEncrypted) {
         if (this.encryptionKey) {
           try {
-            const decrypted = await decryptNote(note as any, this.encryptionKey);
+            const decrypted = await decryptNote(note as unknown as EncryptedNote, this.encryptionKey);
             decryptedNotes.push(decrypted);
           } catch (error) {
             // Skip notes that can't be decrypted

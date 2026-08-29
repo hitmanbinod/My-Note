@@ -1,339 +1,71 @@
-import { useState } from 'react';
+import { ChangeEvent, useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import JSZip from 'jszip';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { db } from '@/lib/db/database';
+import { initiateGoogleAuth } from '@/lib/auth/google-auth';
+import { extractPlainText, sanitizeFilename } from '@/lib/utils/text';
+import { Note, Folder, Theme } from '@/types';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
-import Input from '@/components/ui/Input';
+
+type Tab = 'account' | 'appearance' | 'security' | 'data';
 
 function SettingsPage() {
   const { user } = useAuth();
   const { configuredTheme, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'account' | 'appearance' | 'security' | 'data'>('account');
-  const [showClearDataModal, setShowClearDataModal] = useState(false);
-
+  const [tab, setTab] = useState<Tab>('account');
+  const [clearOpen, setClearOpen] = useState(false);
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-6xl mx-auto p-4 lg:p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            to="/notes"
-            className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Notes
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
-          <TabButton active={activeTab === 'account'} onClick={() => setActiveTab('account')}>
-            Account
-          </TabButton>
-          <TabButton active={activeTab === 'appearance'} onClick={() => setActiveTab('appearance')}>
-            Appearance
-          </TabButton>
-          <TabButton active={activeTab === 'security'} onClick={() => setActiveTab('security')}>
-            Security
-          </TabButton>
-          <TabButton active={activeTab === 'data'} onClick={() => setActiveTab('data')}>
-            Data
-          </TabButton>
-        </div>
-
-        {/* Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          {activeTab === 'account' && <AccountSection user={user} />}
-          {activeTab === 'appearance' && (
-            <AppearanceSection theme={configuredTheme} setTheme={setTheme} />
-          )}
-          {activeTab === 'security' && <SecuritySection />}
-          {activeTab === 'data' && (
-            <DataSection onClearData={() => setShowClearDataModal(true)} />
-          )}
+    <main className="min-h-screen bg-[var(--app-bg)] px-4 py-6 sm:px-8 lg:py-10">
+      <div className="mx-auto max-w-5xl">
+        <Link to="/notes" className="pressable inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="M19 12H5m6-6-6 6 6 6" /></svg>Back to notes</Link>
+        <div className="mb-8 mt-6"><p className="eyebrow mb-2">Workspace preferences</p><h1 className="text-3xl font-bold tracking-[-.035em] text-[var(--ink)]">Settings</h1><p className="mt-2 text-sm text-[var(--muted)]">Manage how My Notes looks, stores, and protects your work.</p></div>
+        <div className="grid gap-5 lg:grid-cols-[210px_1fr]">
+          <nav className="app-panel h-fit rounded-2xl p-2">{(['account','appearance','security','data'] as Tab[]).map(item => <button key={item} onClick={() => setTab(item)} className={`pressable flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm capitalize ${tab === item ? 'bg-primary-50 font-semibold text-primary-700 dark:bg-primary-900/25 dark:text-primary-200' : 'font-medium text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]'}`}><TabIcon tab={item} />{item}</button>)}</nav>
+          <section className="app-panel min-h-[480px] rounded-2xl p-5 sm:p-7">
+            {tab === 'account' && <Account user={user} />}
+            {tab === 'appearance' && <Appearance theme={configuredTheme} setTheme={setTheme} />}
+            {tab === 'security' && <Security />}
+            {tab === 'data' && <Data onClear={() => setClearOpen(true)} />}
+          </section>
         </div>
       </div>
-
-      {/* Clear Data Modal */}
-      <Modal
-        isOpen={showClearDataModal}
-        onClose={() => setShowClearDataModal(false)}
-        title="Clear Local Data"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-600 dark:text-gray-400">
-            This will delete all notes, folders, and settings stored locally on this device. Synced
-            data in Google Drive will not be affected.
-          </p>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              ⚠️ This action cannot be undone. Make sure your notes are synced before proceeding.
-            </p>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setShowClearDataModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={async () => {
-                await db.clearAllData();
-                setShowClearDataModal(false);
-                window.location.reload();
-              }}
-            >
-              Clear Data
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </div>
+      <Modal isOpen={clearOpen} onClose={() => setClearOpen(false)} title="Clear local data" size="sm"><p className="text-sm leading-6 text-[var(--muted)]">This permanently removes every local note, folder, attachment, and pending sync operation from this browser.</p><div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">Export a JSON backup first if there is anything you want to keep.</div><div className="mt-6 flex justify-end gap-2"><Button variant="secondary" onClick={() => setClearOpen(false)}>Cancel</Button><Button variant="danger" onClick={async () => { await db.clearAllData(); setClearOpen(false); window.location.reload(); }}>Clear everything</Button></div></Modal>
+    </main>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  children
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-        active
-          ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
-          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-      }`}
-    >
-      {children}
-    </button>
-  );
+function SectionTitle({ title, description }: { title: string; description: string }) { return <div className="mb-6"><h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">{title}</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">{description}</p></div>; }
+
+function Account({ user }: { user: ReturnType<typeof useAuth>['user'] }) {
+  const configured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  return <><SectionTitle title="Account & sync" description="Local mode works without an account. Connect Drive only when you want a cloud copy." />{user?.email ? <div className="flex items-center gap-4 rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-4">{user.photoUrl ? <img src={user.photoUrl} alt="" className="h-11 w-11 rounded-full" /> : <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-100 font-bold text-primary-700">{user.name?.[0] || user.email[0]}</div>}<div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[var(--ink)]">{user.name || 'Google account'}</p><p className="truncate text-xs text-[var(--muted)]">{user.email}</p></div><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Connected</span></div> : <div className="rounded-xl border border-[var(--line)] p-5"><div className="flex items-start gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-900/25 dark:text-primary-300"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 18.5A4.5 4.5 0 0 1 6.5 9.53 6 6 0 0 1 18 11a3.75 3.75 0 0 1-.75 7.5H7Z" /></svg></span><div><p className="text-sm font-bold text-[var(--ink)]">Using local mode</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Your notes are private to this browser and work completely offline.</p></div></div><Button className="mt-5" variant="outline" disabled={!configured} onClick={() => initiateGoogleAuth().catch(error => alert(error instanceof Error ? error.message : 'Could not connect.'))}>{configured ? 'Connect Google Drive' : 'Drive setup required'}</Button>{!configured && <p className="mt-2 text-[11px] text-[var(--muted)]">Add a Google OAuth client ID to the environment to enable this option.</p>}</div>}<div className="mt-8 border-t border-[var(--line)] pt-6"><h3 className="text-sm font-bold text-[var(--ink)]">About</h3><dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div className="rounded-lg bg-[var(--panel-soft)] p-3"><dt className="text-[var(--muted)]">Version</dt><dd className="mt-1 font-semibold text-[var(--ink)]">1.0.0</dd></div><div className="rounded-lg bg-[var(--panel-soft)] p-3"><dt className="text-[var(--muted)]">Storage model</dt><dd className="mt-1 font-semibold text-[var(--ink)]">Local-first</dd></div></dl></div></>;
 }
 
-function AccountSection({ user }: { user: any }) {
-  return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Google Account
-        </h2>
-        {user?.email ? (
-          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            {user.photoUrl ? (
-              <img src={user.photoUrl} alt={user.name} className="w-12 h-12 rounded-full" />
-            ) : (
-              <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium text-xl">
-                {user.name?.[0] || user.email[0]}
-              </div>
-            )}
-            <div className="flex-1">
-              <p className="font-medium text-gray-900 dark:text-white">{user.name || 'User'}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
-            </div>
-            <Badge variant="success">Connected</Badge>
-          </div>
-        ) : (
-          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Connect your Google account to sync notes across devices
-            </p>
-            <Button>Connect Google Drive</Button>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h2>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Version</span>
-            <span className="text-gray-900 dark:text-white">1.0.0</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Build</span>
-            <span className="text-gray-900 dark:text-white">Development</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function Appearance({ theme, setTheme }: { theme: Theme; setTheme: (theme: Theme) => Promise<void> }) {
+  return <><SectionTitle title="Appearance" description="Choose the theme that makes your writing space feel most comfortable." /><div className="grid gap-3 sm:grid-cols-3">{(['light','dark','system'] as Theme[]).map(option => <button key={option} onClick={() => setTheme(option)} className={`pressable rounded-xl border p-3 text-left ${theme === option ? 'border-primary-400 bg-primary-50 ring-2 ring-primary-500/10 dark:bg-primary-900/20' : 'border-[var(--line)] hover:border-primary-300'}`}><div className={`mb-3 h-24 overflow-hidden rounded-lg border ${option === 'dark' ? 'border-gray-700 bg-gray-900' : option === 'light' ? 'border-gray-200 bg-[#f6f5f2]' : 'border-[var(--line)] bg-gradient-to-br from-[#f6f5f2] to-gray-900'}`}><div className={`m-2 h-3 w-12 rounded-full ${option === 'dark' ? 'bg-gray-700' : 'bg-white'}`} /><div className={`mx-2 mt-2 h-12 rounded ${option === 'dark' ? 'bg-gray-800' : 'bg-white'}`} /></div><p className="text-sm font-bold capitalize text-[var(--ink)]">{option}</p><p className="mt-0.5 text-[11px] text-[var(--muted)]">{option === 'system' ? 'Follow this device' : `${option[0]!.toUpperCase()}${option.slice(1)} at all times`}</p></button>)}</div></>;
 }
 
-function AppearanceSection({ theme, setTheme }: any) {
-  return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Theme</h2>
-        <div className="space-y-2">
-          <ThemeOption
-            label="Light"
-            description="Always use light theme"
-            selected={theme === 'light'}
-            onClick={() => setTheme('light')}
-          />
-          <ThemeOption
-            label="Dark"
-            description="Always use dark theme"
-            selected={theme === 'dark'}
-            onClick={() => setTheme('dark')}
-          />
-          <ThemeOption
-            label="System"
-            description="Match system preference"
-            selected={theme === 'system'}
-            onClick={() => setTheme('system')}
-          />
-        </div>
-      </div>
-    </div>
-  );
+function Security() { return <><SectionTitle title="Security" description="Your notes stay inside the browser database unless you explicitly connect a sync service." /><div className="rounded-xl border border-[var(--line)] p-5"><div className="flex gap-3"><span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 10V7.5a4 4 0 0 1 8 0V10m-9 0h10a2 2 0 0 1 2 2v7H5v-7a2 2 0 0 1 2-2Z" /></svg></span><div><p className="text-sm font-bold text-[var(--ink)]">Local privacy is active</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">There is no analytics service, application server, or third-party note storage in local mode.</p></div></div></div><div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--panel-soft)] p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-bold text-[var(--ink)]">End-to-end encryption</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">The encryption primitives are included, but password setup and safe migration are not enabled in this release.</p></div><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[10px] font-bold text-[var(--muted)]">Coming later</span></div></div></>;
 }
 
-function ThemeOption({
-  label,
-  description,
-  selected,
-  onClick
-}: {
-  label: string;
-  description: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${
-        selected
-          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-      }`}
-    >
-      <div
-        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-          selected ? 'border-primary-500' : 'border-gray-300 dark:border-gray-600'
-        }`}
-      >
-        {selected && <div className="w-3 h-3 rounded-full bg-primary-500" />}
-      </div>
-      <div className="flex-1 text-left">
-        <p className="font-medium text-gray-900 dark:text-white">{label}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
-      </div>
-    </button>
-  );
+function Data({ onClear }: { onClear: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState('');
+  const stats = useLiveQuery(async () => ({ notes: await db.notes.count(), folders: await db.folders.count(), usage: await db.getStorageUsage() }), [], { notes: 0, folders: 0, usage: { total: 0, notes: 0, attachments: 0 } });
+  const download = (blob: Blob, filename: string) => { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+  const exportJson = async () => { const payload = { format: 'my-notes-backup', version: 1, exportedAt: new Date().toISOString(), notes: await db.notes.toArray(), folders: await db.folders.toArray() }; download(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `my-notes-backup-${new Date().toISOString().slice(0,10)}.json`); setMessage('JSON backup created.'); };
+  const exportMarkdown = async () => { const notes = await db.notes.toArray(); const zip = new JSZip(); for (const note of notes) { if (note.isDeleted) continue; const frontmatter = `---\ntitle: ${JSON.stringify(note.title)}\ntags: [${note.tags.map(tag => JSON.stringify(tag)).join(', ')}]\nupdated: ${new Date(note.updatedAt).toISOString()}\n---\n\n`; zip.file(`${sanitizeFilename(note.title || 'Untitled')}-${note.id.slice(0,6)}.md`, frontmatter + extractPlainText(note.content)); } download(await zip.generateAsync({ type: 'blob' }), `my-notes-markdown-${new Date().toISOString().slice(0,10)}.zip`); setMessage('Markdown archive created.'); };
+  const importBackup = async (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; try { const data = JSON.parse(await file.text()) as { format?: string; notes?: Note[]; folders?: Folder[] }; if (data.format !== 'my-notes-backup' || !Array.isArray(data.notes) || !Array.isArray(data.folders)) throw new Error('This is not a My Notes backup file.'); await db.transaction('rw', db.notes, db.folders, async () => { await db.folders.bulkPut(data.folders!); await db.notes.bulkPut(data.notes!); }); setMessage(`Imported ${data.notes.length} notes and ${data.folders.length} folders.`); } catch (error) { setMessage(error instanceof Error ? error.message : 'The backup could not be imported.'); } };
+  return <><SectionTitle title="Data & backups" description="Take your work with you at any time. Backups are created entirely in this browser." />{message && <div className="mb-4 rounded-xl bg-primary-50 px-4 py-3 text-xs font-semibold text-primary-700 dark:bg-primary-900/25 dark:text-primary-200">{message}</div>}<div className="grid gap-3 sm:grid-cols-3"><DataAction title="JSON backup" description="Best for a complete restore." onClick={exportJson} icon="↓" /><DataAction title="Markdown ZIP" description="Portable, readable files." onClick={exportMarkdown} icon="M↓" /><DataAction title="Import backup" description="Merge a JSON backup." onClick={() => inputRef.current?.click()} icon="↑" /></div><input ref={inputRef} type="file" accept="application/json,.json" className="hidden" onChange={importBackup} /><div className="mt-8 border-t border-[var(--line)] pt-6"><h3 className="text-sm font-bold text-[var(--ink)]">Local storage</h3><div className="mt-4 grid grid-cols-3 gap-3"><Stat label="Notes" value={String(stats?.notes || 0)} /><Stat label="Folders" value={String(stats?.folders || 0)} /><Stat label="Estimated" value={formatBytes(stats?.usage.total || 0)} /></div></div><div className="mt-8 border-t border-red-200 pt-6 dark:border-red-900/50"><h3 className="text-sm font-bold text-red-600 dark:text-red-400">Danger zone</h3><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Permanently remove every local note and folder from this browser.</p><Button variant="danger" size="sm" className="mt-4" onClick={onClear}>Clear local data</Button></div></>;
 }
 
-function SecuritySection() {
-  return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Encryption
-        </h2>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-gray-900 dark:text-white font-medium mb-1">
-                Encryption not configured
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Enable end-to-end encryption to protect your notes with a password
-              </p>
-              <Button size="sm">Enable Encryption</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          App Lock
-        </h2>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Require authentication to unlock the app after inactivity
-          </p>
-          <div className="mt-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="rounded" disabled />
-              <span className="text-gray-700 dark:text-gray-300">Enable app lock</span>
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DataSection({ onClearData }: { onClearData: () => void }) {
-  return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Import & Export
-        </h2>
-        <div className="space-y-3">
-          <Button variant="secondary" className="w-full">
-            Export All Notes (JSON)
-          </Button>
-          <Button variant="secondary" className="w-full">
-            Export as Markdown
-          </Button>
-          <Button variant="secondary" className="w-full">
-            Import Notes
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Storage
-        </h2>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Local storage</span>
-            <span className="text-gray-900 dark:text-white">~2.4 MB</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Notes</span>
-            <span className="text-gray-900 dark:text-white">0</span>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">
-          Danger Zone
-        </h2>
-        <div className="border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-            Clear Local Data
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Delete all notes and settings stored on this device
-          </p>
-          <Button variant="danger" size="sm" onClick={onClearData}>
-            Clear All Data
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+function DataAction({ title, description, onClick, icon }: { title: string; description: string; onClick: () => void; icon: string }) { return <button onClick={onClick} className="pressable rounded-xl border border-[var(--line)] p-4 text-left hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-900/10"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--panel-soft)] text-xs font-bold text-primary-600">{icon}</span><p className="mt-4 text-sm font-bold text-[var(--ink)]">{title}</p><p className="mt-1 text-[11px] leading-5 text-[var(--muted)]">{description}</p></button>; }
+function Stat({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-[var(--panel-soft)] p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">{label}</p><p className="mt-1 text-lg font-bold text-[var(--ink)]">{value}</p></div>; }
+function formatBytes(bytes: number) { if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
+function TabIcon({ tab }: { tab: Tab }) { const paths: Record<Tab, string> = { account: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0', appearance: 'M12 3a9 9 0 1 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h2a7 7 0 0 0-2-11Z', security: 'M8 10V7.5a4 4 0 0 1 8 0V10m-9 0h10a2 2 0 0 1 2 2v7H5v-7a2 2 0 0 1 2-2Z', data: 'M5 6c0 1.1 3.13 2 7 2s7-.9 7-2-3.13-2-7-2-7 .9-7 2Zm0 0v6c0 1.1 3.13 2 7 2s7-.9 7-2V6m-14 6v6c0 1.1 3.13 2 7 2s7-.9 7-2v-6' }; return <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" d={paths[tab]} /></svg>; }
 
 export default SettingsPage;

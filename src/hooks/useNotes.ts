@@ -9,6 +9,7 @@ export function useNotes(
   sortBy: NoteSortField = 'updatedAt',
   sortOrder: NoteSortOrder = 'desc'
 ) {
+  const filterKey = JSON.stringify(filter || {});
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,19 +26,13 @@ export function useNotes(
       if (!dbReady) return [];
       
       try {
-        let query = db.notes.toCollection();
-
-        if (filter?.isDeleted !== undefined) {
-          query = db.notes.where('isDeleted').equals(filter.isDeleted);
-        }
-
-        return await query.toArray();
+        return await db.notes.toCollection().toArray();
       } catch (err) {
         console.error('Error in useLiveQuery:', err);
         return [];
       }
     },
-    [filter, dbReady],
+    [dbReady],
     []
   );
 
@@ -50,7 +45,7 @@ export function useNotes(
         setLoading(true);
         setError(null);
         
-        const processed = await noteService.listNotes(filter, sortBy, sortOrder);
+        const processed = await noteService.listNotes(JSON.parse(filterKey) as NoteFilter, sortBy, sortOrder);
         setNotes(processed);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load notes');
@@ -61,7 +56,7 @@ export function useNotes(
     };
 
     processNotes();
-  }, [rawNotes, filter, sortBy, sortOrder]);
+  }, [rawNotes, filterKey, sortBy, sortOrder]);
 
   return { notes, loading, error };
 }

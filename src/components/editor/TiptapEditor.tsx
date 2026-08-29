@@ -1,5 +1,5 @@
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { getEditorExtensions } from '@/lib/editor/extensions';
 import EditorToolbar from './EditorToolbar';
 
@@ -18,16 +18,25 @@ function TiptapEditor({
   editable = true,
   className = ''
 }: TiptapEditorProps) {
+  const isUserInteraction = useRef(false);
+  const markUserInteraction = () => {
+    isUserInteraction.current = true;
+    window.setTimeout(() => {
+      isUserInteraction.current = false;
+    }, 0);
+  };
   const editor = useEditor({
     extensions: getEditorExtensions(placeholder),
     content,
     editable,
+    // Tiptap also emits updates for internal document setup. Only forward an
+    // update that follows a real keyboard, pointer, paste, or toolbar action.
     onUpdate: ({ editor }) => {
-      onChange(editor.getJSON());
+      if (isUserInteraction.current) onChange(editor.getJSON());
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3'
+        class: 'prose dark:prose-invert max-w-none focus:outline-none'
       }
     }
   });
@@ -35,7 +44,7 @@ function TiptapEditor({
   // Update editor content when prop changes (for loading saved notes)
   useEffect(() => {
     if (editor && content && JSON.stringify(editor.getJSON()) !== JSON.stringify(content)) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(content, false);
     }
   }, [editor, content]);
 
@@ -47,13 +56,22 @@ function TiptapEditor({
   }, [editor, editable]);
 
   if (!editor) {
-    return <div className="animate-pulse bg-gray-100 dark:bg-gray-800 rounded h-64" />;
+    return <div className="h-64 animate-pulse bg-[var(--panel-soft)]" />;
   }
 
   return (
-    <div className={`border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 ${className}`}>
-      {editable && <EditorToolbar editor={editor} />}
-      <EditorContent editor={editor} />
+    <div className={`bg-[var(--panel)] ${className}`}>
+      {editable && <div onPointerDownCapture={markUserInteraction}><EditorToolbar editor={editor} /></div>}
+      <div
+        onBeforeInputCapture={markUserInteraction}
+        onKeyDownCapture={markUserInteraction}
+        onPointerDownCapture={markUserInteraction}
+        onPasteCapture={markUserInteraction}
+        onCutCapture={markUserInteraction}
+        onDropCapture={markUserInteraction}
+      >
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

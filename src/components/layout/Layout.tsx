@@ -1,26 +1,17 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { ReactNode, useState } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-function Layout() {
+function Layout({ children }: { children?: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-      
-      <div className="flex flex-1">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
-        <main className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-800">
-          <div className="p-4">
-            <Outlet />
-          </div>
-        </main>
+    <div className="min-h-screen bg-[var(--app-bg)] lg:flex">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="min-w-0 flex-1 lg:pl-[272px]">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="min-h-[calc(100vh-72px)] px-4 py-5 sm:px-6 lg:px-10 lg:py-8">{children}</main>
       </div>
     </div>
   );
 }
-
 export default Layout;
