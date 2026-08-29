@@ -6,6 +6,7 @@ import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import DiagnosticPage from './pages/DiagnosticPage';
 import AuthTestPage from './pages/AuthTestPage';
+import WhiteboardsPage from './pages/WhiteboardsPage';
 import Layout from './components/layout/Layout';
 import { waitForDb, getDbError } from './lib/db/database';
 import { db } from './lib/db/database';
@@ -172,6 +173,7 @@ function App() {
         >
           <Route index element={<Navigate to="/notes" replace />} />
           <Route path="notes/*" element={<NotesPage />} />
+          <Route path="whiteboards" element={<WhiteboardsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

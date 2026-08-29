@@ -35,14 +35,20 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
           <button onClick={onClose} className="pressable rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--panel-soft)] lg:hidden" aria-label="Close navigation"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
 
-        <Link to="/notes/new" onClick={onClose} className="pressable mb-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm shadow-primary-600/20 hover:bg-primary-700">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg>New note <span className="ml-auto rounded-md bg-white/15 px-1.5 py-0.5 text-[10px]">⌘N</span>
-        </Link>
+        <div className="mb-6 grid grid-cols-2 gap-2">
+          <Link to="/notes/new" onClick={onClose} className="pressable flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-600 px-3 text-sm font-semibold text-white shadow-sm shadow-primary-600/20 hover:bg-primary-700">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg>Note
+          </Link>
+          <Link to="/whiteboards" onClick={onClose} className="pressable flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--panel-soft)]">
+            <BoardIcon />Board
+          </Link>
+        </div>
 
         <nav className="flex-1 overflow-y-auto">
           <p className="eyebrow mb-2 px-3 text-[var(--muted)]">Workspace</p>
           <div className="space-y-1">
             <NavItem to="/notes" label="All notes" count={allNotes.length} active={location.pathname === '/notes'} onClick={onClose} icon={<NotesIcon />} />
+            <NavItem to="/whiteboards" label="Whiteboards" active={location.pathname.startsWith('/whiteboards')} onClick={onClose} icon={<BoardIcon />} />
             <NavItem to="/notes/starred" label="Starred" count={starred.length} active={location.pathname === '/notes/starred'} onClick={onClose} icon={<StarIcon />} />
             <NavItem to="/notes/archived" label="Archive" count={archived.length} active={location.pathname === '/notes/archived'} onClick={onClose} icon={<ArchiveIcon />} />
             <NavItem to="/notes/trash" label="Trash" count={trashed.length} active={location.pathname === '/notes/trash'} onClick={onClose} icon={<TrashIcon />} />
@@ -73,6 +79,7 @@ function NavItem({ to, label, count, active, onClick, icon }: { to: string; labe
 }
 
 const NotesIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M6.5 3.75h9A2.75 2.75 0 0 1 18.25 6.5v11A2.75 2.75 0 0 1 15.5 20.25h-9a2.75 2.75 0 0 1-2.75-2.75v-11A2.75 2.75 0 0 1 6.5 3.75Z" /><path strokeLinecap="round" strokeWidth="1.8" d="M8 8h6M8 12h8M8 16h5" /></svg>;
+const BoardIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.5 4.5h15v15h-15zM8 15l3-4 2 2 3-4" /></svg>;
 const StarIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinejoin="round" strokeWidth="1.8" d="m12 3 2.65 5.37 5.93.86-4.29 4.18 1.01 5.91L12 16.53l-5.3 2.79 1.01-5.91-4.29-4.18 5.93-.86L12 3Z" /></svg>;
 const ArchiveIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7.5h16M5.5 7.5v10.75A1.75 1.75 0 0 0 7.25 20h9.5a1.75 1.75 0 0 0 1.75-1.75V7.5M9.5 11h5M5 4h14a1 1 0 0 1 1 1v2.5H4V5a1 1 0 0 1 1-1Z" /></svg>;
 const TrashIcon = () => <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.5 7h15M9 7V4.5h6V7m2.75 0-.6 11.05a2 2 0 0 1-2 1.9h-6.3a2 2 0 0 1-2-1.9L6.25 7M10 11v5M14 11v5" /></svg>;
