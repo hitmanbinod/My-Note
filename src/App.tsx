@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import NotesPage from './pages/NotesPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
@@ -7,10 +7,13 @@ import OnboardingPage from './pages/OnboardingPage';
 import DiagnosticPage from './pages/DiagnosticPage';
 import AuthTestPage from './pages/AuthTestPage';
 import WhiteboardsPage from './pages/WhiteboardsPage';
+import Spinner from './components/ui/Spinner';
 import Layout from './components/layout/Layout';
 import { waitForDb, getDbError } from './lib/db/database';
 import { db } from './lib/db/database';
 import { useLiveQuery } from 'dexie-react-hooks';
+
+const WhiteboardEditorPage = lazy(() => import('./pages/WhiteboardEditorPage'));
 
 function App() {
   const [dbReady, setDbReady] = useState(false);
@@ -174,6 +177,7 @@ function App() {
           <Route index element={<Navigate to="/notes" replace />} />
           <Route path="notes/*" element={<NotesPage />} />
           <Route path="whiteboards" element={<WhiteboardsPage />} />
+          <Route path="whiteboards/:whiteboardId" element={<Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><Spinner size="lg" /></div>}><WhiteboardEditorPage /></Suspense>} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
