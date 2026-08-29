@@ -1,15 +1,7 @@
 import { db } from './database';
 import { CreateWhiteboardInput, UpdateWhiteboardInput, Whiteboard } from '@/types/whiteboard';
 import { generateUUID } from '@/lib/utils/uuid';
-
-const EMPTY_SCENE_JSON = JSON.stringify({
-  type: 'excalidraw',
-  version: 2,
-  source: 'my-notes',
-  elements: [],
-  appState: {},
-  files: {}
-});
+import { EMPTY_SCENE_JSON } from '@/lib/whiteboards/constants';
 
 export class WhiteboardsRepository {
   async create(input: CreateWhiteboardInput = {}): Promise<Whiteboard> {
