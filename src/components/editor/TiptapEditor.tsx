@@ -1,9 +1,10 @@
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { getEditorExtensions } from '@/lib/editor/extensions';
 import EditorToolbar from './EditorToolbar';
 
 interface TiptapEditorProps {
+  noteId?: string;
   content: JSONContent;
   onChange: (content: JSONContent) => void;
   placeholder?: string;
@@ -12,6 +13,7 @@ interface TiptapEditorProps {
 }
 
 function TiptapEditor({
+  noteId,
   content,
   onChange,
   placeholder = 'Start writing...',
@@ -32,12 +34,16 @@ function TiptapEditor({
     }
   });
 
-  // Update editor content when prop changes (for loading saved notes)
+  // Keep track of the currently loaded note ID to prevent content reset on auto-save
+  const currentNoteIdRef = useRef<string | undefined>(noteId);
+
+  // Update editor content when note ID changes (for loading a different note)
   useEffect(() => {
-    if (editor && content && JSON.stringify(editor.getJSON()) !== JSON.stringify(content)) {
+    if (editor && noteId !== currentNoteIdRef.current) {
       editor.commands.setContent(content);
+      currentNoteIdRef.current = noteId;
     }
-  }, [editor, content]);
+  }, [editor, noteId, content]);
 
   // Update editable state
   useEffect(() => {

@@ -17,7 +17,7 @@ async function generatePKCE(): Promise<{ verifier: string; challenge: string }> 
   // Generate random verifier
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  const verifier = arrayBufferToBase64(array)
+  const verifier = arrayBufferToBase64(array.buffer as ArrayBuffer)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');

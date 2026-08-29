@@ -22,7 +22,7 @@ export interface SyncOperation {
 
 export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'paused';
 
-export interface SyncStatus {
+export interface SyncInfo {
   state: SyncState;
   lastSyncTime: number | null;
   pendingOperations: number;

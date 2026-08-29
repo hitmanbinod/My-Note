@@ -1,5 +1,5 @@
 import { Note, NoteSecrets, EncryptedNote } from '@/types';
-import { arrayBufferToBase64, base64ToArrayBuffer, generateSalt, generateIV } from '@/lib/utils/crypto';
+import { arrayBufferToBase64, base64ToArrayBuffer, generateIV } from '@/lib/utils/crypto';
 
 /**
  * Derive encryption key from password using PBKDF2
@@ -17,7 +17,7 @@ export async function deriveKey(password: string, salt: Uint8Array): Promise<Cry
   return await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: salt.buffer as ArrayBuffer,
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -58,11 +58,10 @@ export async function encryptNote(note: Note, key: CryptoKey, salt: Uint8Array):
   // Generate random IV
   const iv = generateIV();
   
-  // Encrypt
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
+    { name: 'AES-GCM', iv: iv as any },
     key,
-    data
+    data.buffer as ArrayBuffer
   );
   
   // Split ciphertext and auth tag
@@ -73,10 +72,10 @@ export async function encryptNote(note: Note, key: CryptoKey, salt: Uint8Array):
   return {
     id: note.id,
     isEncrypted: true,
-    encryptedBlob: arrayBufferToBase64(encryptedData),
-    iv: arrayBufferToBase64(iv),
-    authTag: arrayBufferToBase64(authTag),
-    salt: arrayBufferToBase64(salt),
+    encryptedBlob: arrayBufferToBase64(encryptedData.buffer as ArrayBuffer),
+    iv: arrayBufferToBase64(iv.buffer as ArrayBuffer),
+    authTag: arrayBufferToBase64(authTag.buffer as ArrayBuffer),
+    salt: arrayBufferToBase64(salt.buffer as ArrayBuffer),
     encryptionVersion: 1,
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
@@ -141,9 +140,9 @@ export async function encryptBlob(blob: Blob, key: CryptoKey): Promise<Blob> {
   const iv = generateIV();
   
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
+    { name: 'AES-GCM', iv: iv as any },
     key,
-    data
+    data as ArrayBuffer
   );
   
   // Prepend IV to ciphertext

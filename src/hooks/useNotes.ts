@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, waitForDb } from '@/lib/db/database';
-import { Note, NoteFilter, NoteSortField, NoteSortOrder } from '@/types';
 import { noteService } from '@/services/NoteService';
+import { Note, NoteFilter, NoteSortField, NoteSortOrder } from '@/types';
 
 export function useNotes(
   filter?: NoteFilter,
@@ -12,56 +11,28 @@ export function useNotes(
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dbReady, setDbReady] = useState(false);
 
-  // Wait for database initialization
-  useEffect(() => {
-    waitForDb().then(() => setDbReady(true)).catch(console.error);
-  }, []);
-
-  // Use Dexie's live query for reactivity - only after DB is ready
+  // Use live query to watch for changes
   const rawNotes = useLiveQuery(
     async () => {
-      if (!dbReady) return [];
-      
       try {
-        let query = db.notes.toCollection();
-
-        if (filter?.isDeleted !== undefined) {
-          query = db.notes.where('isDeleted').equals(filter.isDeleted);
-        }
-
-        return await query.toArray();
+        return await noteService.listNotes(filter, sortBy, sortOrder);
       } catch (err) {
-        console.error('Error in useLiveQuery:', err);
+        console.error('Error loading notes:', err);
         return [];
       }
     },
-    [filter, dbReady],
+    [filter?.isDeleted, filter?.isStarred, filter?.isArchived, filter?.folderId, filter?.tag, sortBy, sortOrder],
     []
   );
 
-  // Process notes through service (handles encryption)
   useEffect(() => {
-    const processNotes = async () => {
-      if (!rawNotes) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const processed = await noteService.listNotes(filter, sortBy, sortOrder);
-        setNotes(processed);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load notes');
-        setNotes([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    processNotes();
-  }, [rawNotes, filter, sortBy, sortOrder]);
+    if (rawNotes !== undefined) {
+      setNotes(rawNotes);
+      setLoading(false);
+      setError(null);
+    }
+  }, [rawNotes]);
 
   return { notes, loading, error };
 }
@@ -71,35 +42,33 @@ export function useNote(id: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Watch for changes to the note
   const rawNote = useLiveQuery(
-    () => (id ? db.notes.get(id) : undefined),
+    async () => {
+      if (!id) return undefined;
+      
+      try {
+        const result = await noteService.getNote(id);
+        return result || null;
+      } catch (err) {
+        console.error('Error loading note:', err);
+        return null;
+      }
+    },
     [id]
   );
 
   useEffect(() => {
-    const loadNote = async () => {
-      if (!id) {
-        setNote(null);
-        setLoading(false);
-        return;
-      }
+    if (!id) {
+      setNote(null);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const loaded = await noteService.getNote(id);
-        setNote(loaded || null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load note');
-        setNote(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadNote();
+    if (rawNote !== undefined) {
+      setNote(rawNote);
+      setLoading(false);
+      setError(null);
+    }
   }, [id, rawNote]);
 
   return { note, loading, error };

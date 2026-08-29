@@ -1,4 +1,4 @@
-import MiniSearch from 'minisearch';
+import MiniSearch, { Options as MiniSearchOptions, SearchOptions } from 'minisearch';
 import { Note } from '@/types';
 
 interface SearchableNote {
@@ -9,21 +9,25 @@ interface SearchableNote {
   folderId: string | null;
 }
 
+// Default search options stored locally since MiniSearch v6 doesn't expose .options
+const defaultSearchOptions: SearchOptions = {
+  boost: { title: 3, tags: 2, content: 1 },
+  fuzzy: 0.2,
+  prefix: true,
+  combineWith: 'AND'
+};
+
 export class SearchEngine {
   private miniSearch: MiniSearch<SearchableNote>;
   private initialized = false;
 
   constructor() {
-    this.miniSearch = new MiniSearch<SearchableNote>({
+    const options: MiniSearchOptions<SearchableNote> = {
       fields: ['title', 'content', 'tags'],
       storeFields: ['id', 'title', 'content', 'tags', 'folderId'],
-      searchOptions: {
-        boost: { title: 3, tags: 2, content: 1 },
-        fuzzy: 0.2,
-        prefix: true,
-        combineWith: 'AND'
-      }
-    });
+      searchOptions: defaultSearchOptions
+    };
+    this.miniSearch = new MiniSearch<SearchableNote>(options);
   }
 
   /**
@@ -107,9 +111,9 @@ export class SearchEngine {
 
     try {
       let results = this.miniSearch.search(query, {
-        ...this.miniSearch.options.searchOptions,
+        ...defaultSearchOptions,
         filter: options?.folderId !== undefined
-          ? (result) => result.folderId === options.folderId
+          ? (result) => result['folderId'] === options.folderId
           : undefined
       });
 
@@ -134,7 +138,7 @@ export class SearchEngine {
 
     try {
       const results = this.miniSearch.autoSuggest(query, {
-        ...this.miniSearch.options.searchOptions,
+        ...defaultSearchOptions,
         boost: { title: 5, tags: 3, content: 1 }
       });
 

@@ -4,7 +4,18 @@ import { Theme } from '@/types';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 export function useTheme() {
-  const settings = useLiveQuery(() => db.settings.get('singleton'));
+  const settings = useLiveQuery(
+    async () => {
+      try {
+        const data = await db.settings.get('singleton');
+        return data || undefined;
+      } catch (err) {
+        return undefined;
+      }
+    },
+    [],
+    undefined
+  );
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
@@ -25,6 +36,7 @@ export function useTheme() {
       return () => mediaQuery.removeEventListener('change', handler);
     } else {
       setEffectiveTheme(theme);
+      return undefined;
     }
   }, [settings]);
 

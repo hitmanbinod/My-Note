@@ -2,7 +2,7 @@ import { Note, CreateNoteInput, UpdateNoteInput, NoteFilter, NoteSortField, Note
 import { notesRepository } from '@/lib/db/notes.repository';
 import { db } from '@/lib/db/database';
 import { encryptNote, decryptNote, deriveKey } from '@/lib/crypto/encryption';
-import { generateSalt, base64ToArrayBuffer } from '@/lib/utils/crypto';
+import { base64ToArrayBuffer } from '@/lib/utils/crypto';
 
 export class NoteService {
   private encryptionKey: CryptoKey | null = null;

@@ -129,7 +129,7 @@ function AuthTestPage() {
                 <Button
                   onClick={handleTestToken}
                   disabled={isLoading}
-                  variant="outline"
+                  variant="secondary"
                   className="w-full"
                 >
                   {isLoading ? 'Testing...' : '🔑 Test Access Token'}
@@ -138,7 +138,7 @@ function AuthTestPage() {
                 <Button
                   onClick={handleTestAPI}
                   disabled={isLoading}
-                  variant="outline"
+                  variant="secondary"
                   className="w-full"
                 >
                   {isLoading ? 'Testing...' : '☁️ Test Drive API'}
@@ -147,7 +147,7 @@ function AuthTestPage() {
                 <Button
                   onClick={handleSignOut}
                   disabled={isLoading}
-                  variant="outline"
+                  variant="secondary"
                   className="w-full"
                 >
                   {isLoading ? 'Signing out...' : '🚪 Sign Out'}

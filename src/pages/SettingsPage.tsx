@@ -6,7 +6,6 @@ import { db } from '@/lib/db/database';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
-import Input from '@/components/ui/Input';
 
 function SettingsPage() {
   const { user } = useAuth();

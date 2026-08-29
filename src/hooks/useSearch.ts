@@ -1,24 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useNotes } from './useNotes';
-import { searchEngine } from '@/lib/search/search-engine';
 import { Note } from '@/types';
+import { db } from '@/lib/db/database';
 
 export function useSearch(query: string, options?: { folderId?: string | null }) {
-  const { notes: allNotes } = useNotes({ isDeleted: false });
   const [results, setResults] = useState<Note[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Index notes when they change
-  useEffect(() => {
-    if (allNotes.length > 0) {
-      searchEngine.indexNotes(allNotes);
-    }
-  }, [allNotes]);
-
-  // Perform search
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setIsSearching(false);
       return;
     }
 
@@ -26,18 +17,41 @@ export function useSearch(query: string, options?: { folderId?: string | null })
 
     const performSearch = async () => {
       try {
-        // Get matching note IDs from search engine
-        const matchingIds = searchEngine.search(query, options);
+        // Get all non-deleted notes
+        const allNotes = await db.notes
+          .where('isDeleted')
+          .equals(0)
+          .toArray() as Note[];
 
-        // Get full note objects
-        const matchedNotes = allNotes.filter(note => matchingIds.includes(note.id));
+        const lowerQuery = query.toLowerCase();
+        
+        // Simple text search
+        const matched = allNotes.filter(note => {
+          // Apply folder filter if specified
+          if (options?.folderId !== undefined && note.folderId !== options.folderId) {
+            return false;
+          }
 
-        // Sort by relevance (order returned by search engine)
-        const sorted = matchingIds
-          .map(id => matchedNotes.find(note => note.id === id))
-          .filter((note): note is Note => note !== undefined);
+          // Search in title, content, and tags
+          return (
+            note.title.toLowerCase().includes(lowerQuery) ||
+            note.plainTextContent.toLowerCase().includes(lowerQuery) ||
+            note.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+          );
+        });
 
-        setResults(sorted);
+        // Sort by relevance (title matches first)
+        matched.sort((a, b) => {
+          const aTitle = a.title.toLowerCase().includes(lowerQuery);
+          const bTitle = b.title.toLowerCase().includes(lowerQuery);
+          
+          if (aTitle && !bTitle) return -1;
+          if (!aTitle && bTitle) return 1;
+          
+          return b.updatedAt - a.updatedAt;
+        });
+
+        setResults(matched);
       } catch (error) {
         console.error('Search failed:', error);
         setResults([]);
@@ -46,39 +60,50 @@ export function useSearch(query: string, options?: { folderId?: string | null })
       }
     };
 
-    // Debounce search slightly
-    const timeout = setTimeout(performSearch, 100);
+    const timeout = setTimeout(performSearch, 300);
     return () => clearTimeout(timeout);
-  }, [query, allNotes, options]);
+  }, [query, options?.folderId]);
 
   return { results, isSearching };
 }
 
 export function useSearchSuggestions(query: string) {
-  const { notes: allNotes } = useNotes({ isDeleted: false });
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  // Index notes when they change
-  useEffect(() => {
-    if (allNotes.length > 0) {
-      searchEngine.indexNotes(allNotes);
-    }
-  }, [allNotes]);
-
-  // Get suggestions
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
       setSuggestions([]);
       return;
     }
 
-    try {
-      const results = searchEngine.autoSuggest(query, { limit: 5 });
-      setSuggestions(results);
-    } catch (error) {
-      console.error('Auto-suggest failed:', error);
-      setSuggestions([]);
-    }
+    const getSuggestions = async () => {
+      try {
+        const allNotes = await db.notes
+          .where('isDeleted')
+          .equals(0)
+          .toArray() as Note[];
+
+        // Extract unique tags that match
+        const matchingTags = new Set<string>();
+        const lowerQuery = query.toLowerCase();
+
+        allNotes.forEach(note => {
+          note.tags.forEach(tag => {
+            if (tag.toLowerCase().includes(lowerQuery)) {
+              matchingTags.add(tag);
+            }
+          });
+        });
+
+        setSuggestions(Array.from(matchingTags).slice(0, 5));
+      } catch (error) {
+        console.error('Auto-suggest failed:', error);
+        setSuggestions([]);
+      }
+    };
+
+    const timeout = setTimeout(getSuggestions, 200);
+    return () => clearTimeout(timeout);
   }, [query]);
 
   return suggestions;

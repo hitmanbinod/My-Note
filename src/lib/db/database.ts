@@ -86,22 +86,51 @@ export const db = new NotesDatabase();
 
 // Track database initialization state
 let dbInitialized = false;
-const initPromise = db.initializeSettings()
-  .then(() => {
+let initError: Error | null = null;
+
+const initPromise = (async () => {
+  try {
+    console.log('🔄 Starting database initialization...');
+    
+    // Test if IndexedDB is available
+    if (!window.indexedDB) {
+      throw new Error('IndexedDB is not available in this browser');
+    }
+    
+    // Open and initialize
+    await db.open();
+    await db.initializeSettings();
+    
     dbInitialized = true;
+    initError = null;
+    
     console.log('✅ Database initialized successfully');
-    console.log('✅ Database tables:', db.tables.map(t => t.name));
-  })
-  .catch((error) => {
+    console.log('✅ Database tables:', db.tables.map(t => t.name).join(', '));
+    
+    return true;
+  } catch (error) {
+    dbInitialized = false;
+    initError = error instanceof Error ? error : new Error(String(error));
+    
     console.error('❌ Database initialization error:', error);
-    console.error('Error details:', error.message, error.stack);
-  });
+    console.error('Error details:', initError.message);
+    
+    throw initError;
+  }
+})();
 
 // Export helper to wait for DB
-export const waitForDb = () => {
-  console.log('⏳ Waiting for database...', dbInitialized ? 'Already ready!' : 'Initializing...');
-  if (dbInitialized) return Promise.resolve();
-  return initPromise;
+export const waitForDb = async (): Promise<void> => {
+  if (dbInitialized) {
+    return Promise.resolve();
+  }
+  
+  if (initError) {
+    throw initError;
+  }
+  
+  await initPromise;
 };
 
 export const isDbReady = () => dbInitialized;
+export const getDbError = () => initError;

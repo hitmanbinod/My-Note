@@ -35,17 +35,19 @@ export class FoldersRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Delete folder and all its notes
+    // Delete folder and move all its notes to no folder
     await db.transaction('rw', db.folders, db.notes, async () => {
       await db.folders.delete(id);
       
-      // Move notes to no folder
-      const notesInFolder = await db.notes.where('folderId').equals(id).toArray();
-      for (const note of notesInFolder) {
-        await db.notes.update(note.id, {
-          folderId: null,
-          syncStatus: 'pending'
-        });
+      // Move notes to no folder using JS-level filter
+      const allNotes = await db.notes.toArray();
+      for (const note of allNotes) {
+        if ((note as any).folderId === id) {
+          await db.notes.update(note.id, {
+            folderId: null,
+            syncStatus: 'pending'
+          } as any);
+        }
       }
     });
   }
@@ -55,11 +57,13 @@ export class FoldersRepository {
   }
 
   async getChildren(parentId: string | null): Promise<Folder[]> {
-    return await db.folders.where('parentId').equals(parentId).toArray();
+    const all = await db.folders.toArray();
+    return all.filter(f => f.parentId === parentId);
   }
 
   async getPendingSync(): Promise<Folder[]> {
-    return await db.folders.where('syncStatus').equals('pending').toArray();
+    const all = await db.folders.toArray();
+    return all.filter(f => f.syncStatus === 'pending');
   }
 }
 

@@ -178,20 +178,20 @@ const StrikeIcon = () => (
 );
 
 const H1Icon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    <text x="2" y="18" fontSize="16" fontWeight="bold">H1</text>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h3v12H4m3-6h6m3 6V6h3m-3 0v12" />
   </svg>
 );
 
 const H2Icon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    <text x="2" y="18" fontSize="16" fontWeight="bold">H2</text>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6h3v12H3m3-6h5m3 6V6h3m-3 0v12m4 0h3a2 2 0 002-2v-2a2 2 0 00-2-2h-3v-4h5" />
   </svg>
 );
 
 const H3Icon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    <text x="2" y="18" fontSize="16" fontWeight="bold">H3</text>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6h3v12H3m3-6h5m3 6V6h3m-3 0v12m4 0h3a2 2 0 002-2v-2a2 2 0 00-2-2h-3m3-2a2 2 0 00-2-2h-1v-4h4" />
   </svg>
 );
 

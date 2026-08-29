@@ -1,5 +1,5 @@
 import { db } from './database';
-import { Note, NoteFilter, NoteSortField, NoteSortOrder, CreateNoteInput, UpdateNoteInput } from '@/types';
+import { Note, NoteFilter, NoteSortField, NoteSortOrder, CreateNoteInput } from '@/types';
 import { generateUUID } from '@/lib/utils/uuid';
 import { extractPlainText } from '@/lib/utils/text';
 
@@ -39,10 +39,6 @@ export class NotesRepository {
 
   async get(id: string): Promise<Note | undefined> {
     const note = await db.notes.get(id);
-    if (note) {
-      // Update access time
-      await db.notes.update(id, { accessedAt: Date.now() });
-    }
     return note as Note | undefined;
   }
 
@@ -71,7 +67,7 @@ export class NotesRepository {
       isDeleted: true,
       deletedAt: Date.now(),
       syncStatus: 'pending'
-    });
+    } as any);
   }
 
   async permanentDelete(id: string): Promise<void> {
@@ -83,7 +79,7 @@ export class NotesRepository {
       isDeleted: false,
       deletedAt: null,
       syncStatus: 'pending'
-    });
+    } as any);
   }
 
   async list(
@@ -93,9 +89,12 @@ export class NotesRepository {
   ): Promise<Note[]> {
     let collection = db.notes.toCollection();
 
-    // Apply filters
+    // Apply filters - Dexie stores booleans, filter with .and() for JS-level comparison
     if (filter?.isDeleted !== undefined) {
-      collection = db.notes.where('isDeleted').equals(filter.isDeleted);
+      collection = collection.and(note => (note as Note).isDeleted === filter.isDeleted);
+    } else {
+      // Default: exclude deleted notes
+      collection = collection.and(note => !(note as Note).isDeleted);
     }
 
     if (filter?.folderId !== undefined) {
@@ -143,54 +142,47 @@ export class NotesRepository {
   async search(query: string): Promise<Note[]> {
     const lowerQuery = query.toLowerCase();
     
-    return await db.notes
-      .where('isDeleted')
-      .equals(false)
-      .filter(note => {
-        const n = note as Note;
-        return (
-          n.title.toLowerCase().includes(lowerQuery) ||
-          n.plainTextContent.toLowerCase().includes(lowerQuery) ||
-          n.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
-        );
-      })
-      .toArray() as Note[];
+    const allNotes = await db.notes.toArray() as Note[];
+    return allNotes.filter(note => {
+      if (note.isDeleted) return false;
+      return (
+        note.title.toLowerCase().includes(lowerQuery) ||
+        note.plainTextContent.toLowerCase().includes(lowerQuery) ||
+        note.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+      );
+    });
   }
 
   async countByFolder(folderId: string | null): Promise<number> {
-    return await db.notes
-      .where('folderId')
-      .equals(folderId)
-      .and(note => !(note as Note).isDeleted)
-      .count();
+    const allNotes = await db.notes.toArray() as Note[];
+    return allNotes.filter(note => 
+      note.folderId === folderId && !note.isDeleted
+    ).length;
   }
 
   async getAllTags(): Promise<string[]> {
-    const notes = await db.notes
-      .where('isDeleted')
-      .equals(false)
-      .toArray() as Note[];
+    const allNotes = await db.notes.toArray() as Note[];
     
     const tagSet = new Set<string>();
-    notes.forEach(note => note.tags.forEach(tag => tagSet.add(tag)));
+    allNotes
+      .filter(note => !note.isDeleted)
+      .forEach(note => note.tags.forEach(tag => tagSet.add(tag)));
     
     return Array.from(tagSet).sort();
   }
 
   async getPendingSync(): Promise<Note[]> {
-    return await db.notes
-      .where('syncStatus')
-      .equals('pending')
-      .toArray() as Note[];
+    const allNotes = await db.notes.toArray() as Note[];
+    return allNotes.filter(note => (note as Note).syncStatus === 'pending');
   }
 
   async emptyTrash(): Promise<void> {
-    const trashedNotes = await db.notes
-      .where('isDeleted')
-      .equals(true)
-      .toArray();
-
-    await db.notes.bulkDelete(trashedNotes.map(n => n.id));
+    const allNotes = await db.notes.toArray() as Note[];
+    const trashedIds = allNotes
+      .filter(note => note.isDeleted)
+      .map(note => note.id);
+    
+    await db.notes.bulkDelete(trashedIds);
   }
 
   async bulkUpdate(ids: string[], updates: Partial<Note>): Promise<void> {
