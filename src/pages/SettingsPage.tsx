@@ -133,6 +133,8 @@ function AccountSection({ user, sync }: { user: any; sync: import('@/types/sync'
     try {
       setConnecting(true);
       await initiateGoogleAuth();
+      // Web flow navigates away to Google immediately; only the Electron flow resolves in-place.
+      setConnecting(false);
     } catch (error) {
       setConnecting(false);
       alert(error instanceof Error ? error.message : 'Could not start Google sign in.');

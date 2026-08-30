@@ -1,4 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+// file:// (Electron) has no real path to push history state against — hash routing works there instead.
+const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
 import { lazy, Suspense, useEffect, useState } from 'react';
 import NotesPage from './pages/NotesPage';
 import SettingsPage from './pages/SettingsPage';

@@ -8,8 +8,15 @@ function OnboardingPage() {
   const [connecting, setConnecting] = useState(false);
   const startOffline = async () => { await db.settings.update('singleton', { onboardingCompleted: true }); navigate('/notes'); };
   const connectDrive = async () => {
-    try { setConnecting(true); await initiateGoogleAuth(); }
-    catch (error) { setConnecting(false); alert(error instanceof Error ? error.message : 'Could not start Google sign in.'); }
+    try {
+      setConnecting(true);
+      await initiateGoogleAuth();
+      // Web flow navigates away to Google immediately; only the Electron flow resolves in-place.
+      navigate('/notes', { replace: true });
+    } catch (error) {
+      setConnecting(false);
+      alert(error instanceof Error ? error.message : 'Could not start Google sign in.');
+    }
   };
 
   return (

@@ -3,7 +3,11 @@ import { arrayBufferToBase64 } from '@/lib/utils/crypto';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = `${window.location.origin}/auth/callback`;
+const WEB_REDIRECT_URI = `${window.location.origin}/auth/callback`;
+// Fixed port a packaged (file://) app can't derive from its own origin — must match the
+// loopback server in electron/main.cjs and be registered as an authorized redirect URI.
+const DESKTOP_REDIRECT_URI = 'http://127.0.0.1:5174/auth/callback';
+const isElectron = Boolean(window.electronAPI?.isElectron);
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -35,7 +39,9 @@ async function generatePKCE(): Promise<{ verifier: string; challenge: string }> 
 }
 
 /**
- * Initiate OAuth flow
+ * Initiate OAuth flow. In the browser this navigates away to Google and the redirect back to
+ * /auth/callback finishes the exchange. In Electron there's no dev server to redirect to, so a
+ * loopback server in the main process catches the code and we exchange it right here instead.
  */
 export async function initiateGoogleAuth(): Promise<void> {
   if (!CLIENT_ID) {
@@ -43,14 +49,14 @@ export async function initiateGoogleAuth(): Promise<void> {
   }
 
   const { verifier, challenge } = await generatePKCE();
-
-  // Store verifier in sessionStorage for later
   sessionStorage.setItem('pkce_verifier', verifier);
 
-  // Build authorization URL
+  const redirectUri = isElectron ? DESKTOP_REDIRECT_URI : WEB_REDIRECT_URI;
+  sessionStorage.setItem('oauth_redirect_uri', redirectUri);
+
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope: SCOPES,
     code_challenge: challenge,
@@ -60,7 +66,13 @@ export async function initiateGoogleAuth(): Promise<void> {
   });
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  window.location.href = authUrl;
+
+  if (isElectron && window.electronAPI) {
+    const code = await window.electronAPI.startGoogleAuth(authUrl);
+    await exchangeCodeForTokens(code);
+  } else {
+    window.location.href = authUrl;
+  }
 }
 
 /**
@@ -76,19 +88,21 @@ export async function exchangeCodeForTokens(code: string): Promise<void> {
     throw new Error('Google Client ID not configured');
   }
 
+  const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || WEB_REDIRECT_URI;
+
   // For Web Applications, Google requires client_secret even with PKCE
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET || '', // Include client secret
     code: code,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     grant_type: 'authorization_code',
     code_verifier: verifier
   });
 
   console.log('Exchanging code for tokens...', {
     client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     has_code: !!code,
     has_verifier: !!verifier
   });
@@ -122,6 +136,7 @@ export async function exchangeCodeForTokens(code: string): Promise<void> {
 
   // Clear verifier
   sessionStorage.removeItem('pkce_verifier');
+  sessionStorage.removeItem('oauth_redirect_uri');
 }
 
 /**
