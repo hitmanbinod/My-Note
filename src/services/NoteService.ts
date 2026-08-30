@@ -150,8 +150,9 @@ export class NoteService {
    * Permanently delete a note
    */
   async permanentlyDeleteNote(id: string): Promise<void> {
+    const note = await notesRepository.get(id);
     await notesRepository.permanentDelete(id);
-    await this.queueSync('delete', id);
+    await this.queueSync('delete', id, note?.driveFileId ?? null);
   }
 
   /**
@@ -340,7 +341,11 @@ export class NoteService {
   /**
    * Queue sync operation
    */
-  private async queueSync(type: 'create' | 'update' | 'delete', noteId: string): Promise<void> {
+  private async queueSync(
+    type: 'create' | 'update' | 'delete',
+    noteId: string,
+    driveFileId: string | null = null
+  ): Promise<void> {
     await db.syncOperations.add({
       id: crypto.randomUUID(),
       type,
@@ -349,7 +354,8 @@ export class NoteService {
       timestamp: Date.now(),
       retryCount: 0,
       lastError: null,
-      status: 'pending'
+      status: 'pending',
+      driveFileId
     });
   }
 }

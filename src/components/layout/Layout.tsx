@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useSync } from '@/hooks/useSync';
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  useSync(true);
 
   // Close sidebar on desktop when navigating
   useEffect(() => {

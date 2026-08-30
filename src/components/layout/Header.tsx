@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useSync } from '@/hooks/useSync';
 import { signOut } from '@/lib/auth/google-auth';
+import { SyncInfo } from '@/types/sync';
 import SearchBar from './SearchBar';
 
 function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
+  const isDriveConnected = Boolean(user?.email);
+  const sync = useSync();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -26,7 +30,7 @@ function Header({ onMenuClick }: { onMenuClick: () => void }) {
       <button onClick={onMenuClick} className="pressable -ml-1 rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--panel-soft)] lg:hidden" aria-label="Open navigation"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="M4 7h16M4 12h16M4 17h16" /></svg></button>
       <SearchBar />
       <div className="ml-auto flex items-center gap-2">
-        <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Offline ready</span>
+        <SyncBadge connected={isDriveConnected} sync={sync} />
         <div className="relative">
           <button onClick={() => setMenuOpen(!menuOpen)} className="pressable flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary-700 ring-1 ring-primary-200 dark:bg-primary-900/40 dark:text-primary-200 dark:ring-primary-800" aria-label="Open account menu">{user?.name?.[0] || user?.email?.[0] || 'M'}</button>
           {menuOpen && <><button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} aria-label="Close account menu" /><div className="app-panel absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-xl p-1.5 text-sm"><div className="px-3 py-2.5"><p className="font-semibold text-[var(--ink)]">{user?.name || 'Local workspace'}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{user?.email || 'Stored on this device'}</p></div><Link to="/settings" onClick={() => setMenuOpen(false)} className="pressable flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--ink)] hover:bg-[var(--panel-soft)]"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.52-1H3v-4h.08A1.7 1.7 0 0 0 4.6 8.97a1.7 1.7 0 0 0-.34-1.88l-.06-.06L7.03 4.2l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.03 1.52 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" /></svg>Settings</Link><div className="my-1 border-t border-[var(--line)]" /><button onClick={handleLogout} disabled={loggingOut} className="pressable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/30"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4m4-3 4-4-4-4m4 4H9" /></svg>{loggingOut ? 'Logging out…' : 'Log out'}</button></div></>}
@@ -35,4 +39,45 @@ function Header({ onMenuClick }: { onMenuClick: () => void }) {
     </header>
   );
 }
+function SyncBadge({ connected, sync }: { connected: boolean; sync: SyncInfo }) {
+  if (!connected) {
+    return (
+      <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 sm:flex">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Offline ready
+      </span>
+    );
+  }
+
+  const stateStyles: Record<SyncInfo['state'], string> = {
+    idle: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+    syncing: 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300',
+    offline: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+    error: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+    paused: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+  };
+  const dotStyles: Record<SyncInfo['state'], string> = {
+    idle: 'bg-emerald-500',
+    syncing: 'bg-primary-500 animate-pulse',
+    offline: 'bg-amber-500',
+    error: 'bg-red-500',
+    paused: 'bg-gray-400'
+  };
+  const label: Record<SyncInfo['state'], string> = {
+    idle: 'Synced to Drive',
+    syncing: 'Syncing…',
+    offline: 'Offline',
+    error: 'Sync error',
+    paused: 'Sync paused'
+  };
+
+  return (
+    <span
+      className={`hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold sm:flex ${stateStyles[sync.state]}`}
+      title={sync.error ?? undefined}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${dotStyles[sync.state]}`} /> {label[sync.state]}
+    </span>
+  );
+}
+
 export default Header;

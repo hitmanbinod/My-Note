@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { useSync } from '@/hooks/useSync';
 import { db } from '@/lib/db/database';
+import { initiateGoogleAuth, signOut } from '@/lib/auth/google-auth';
+import { runSync } from '@/lib/sync/sync-service';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 
 function SettingsPage() {
   const { user } = useAuth();
+  const sync = useSync();
   const { configuredTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'account' | 'appearance' | 'security' | 'data'>('account');
   const [showClearDataModal, setShowClearDataModal] = useState(false);
@@ -48,7 +52,7 @@ function SettingsPage() {
 
         {/* Content */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          {activeTab === 'account' && <AccountSection user={user} />}
+          {activeTab === 'account' && <AccountSection user={user} sync={sync} />}
           {activeTab === 'appearance' && (
             <AppearanceSection theme={configuredTheme} setTheme={setTheme} />
           )}
@@ -120,34 +124,83 @@ function TabButton({
   );
 }
 
-function AccountSection({ user }: { user: any }) {
+function AccountSection({ user, sync }: { user: any; sync: import('@/types/sync').SyncInfo }) {
+  const navigate = useNavigate();
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const connect = async () => {
+    try {
+      setConnecting(true);
+      await initiateGoogleAuth();
+    } catch (error) {
+      setConnecting(false);
+      alert(error instanceof Error ? error.message : 'Could not start Google sign in.');
+    }
+  };
+
+  const disconnect = async () => {
+    if (!confirm('Disconnect Google Drive? Notes stay on this device; nothing on Drive is deleted.')) return;
+    setDisconnecting(true);
+    await signOut();
+    setDisconnecting(false);
+    navigate('/onboarding', { replace: true });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Google Account
+          Google Drive
         </h2>
         {user?.email ? (
-          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            {user.photoUrl ? (
-              <img src={user.photoUrl} alt={user.name} className="w-12 h-12 rounded-full" />
-            ) : (
-              <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium text-xl">
-                {user.name?.[0] || user.email[0]}
+          <div className="space-y-3">
+            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              {user.photoUrl ? (
+                <img src={user.photoUrl} alt={user.name} className="w-12 h-12 rounded-full" />
+              ) : (
+                <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium text-xl">
+                  {user.name?.[0] || user.email[0]}
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 dark:text-white">{user.name || 'User'}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
               </div>
-            )}
-            <div className="flex-1">
-              <p className="font-medium text-gray-900 dark:text-white">{user.name || 'User'}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
+              <Badge variant="success">Connected</Badge>
             </div>
-            <Badge variant="success">Connected</Badge>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div className="text-sm">
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? 'Sync error' : sync.state === 'offline' ? 'Offline' : 'Up to date'}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {sync.error
+                    ? sync.error
+                    : sync.lastSyncTime
+                    ? `Last synced ${new Date(sync.lastSyncTime).toLocaleString()}`
+                    : 'Not synced yet'}
+                  {sync.pendingOperations > 0 ? ` · ${sync.pendingOperations} pending` : ''}
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => runSync()} disabled={sync.state === 'syncing'}>
+                {sync.state === 'syncing' ? 'Syncing…' : 'Sync now'}
+              </Button>
+            </div>
+
+            <Button variant="danger" size="sm" onClick={disconnect} disabled={disconnecting}>
+              {disconnecting ? 'Disconnecting…' : 'Disconnect Google Drive'}
+            </Button>
           </div>
         ) : (
           <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Connect your Google account to sync notes across devices
+              Connect your Google account to sync notes across devices via Google Drive
             </p>
-            <Button>Connect Google Drive</Button>
+            <Button onClick={connect} disabled={connecting}>
+              {connecting ? 'Connecting…' : 'Connect Google Drive'}
+            </Button>
           </div>
         )}
       </div>

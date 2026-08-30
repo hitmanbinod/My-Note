@@ -34,8 +34,9 @@ export class FolderService {
    * Delete a folder
    */
   async deleteFolder(id: string): Promise<void> {
+    const folder = await foldersRepository.get(id);
     await foldersRepository.delete(id);
-    await this.queueSync('delete', id);
+    await this.queueSync('delete', id, folder?.driveFileId ?? null);
   }
 
   /**
@@ -55,7 +56,11 @@ export class FolderService {
   /**
    * Queue sync operation
    */
-  private async queueSync(type: 'create' | 'update' | 'delete', folderId: string): Promise<void> {
+  private async queueSync(
+    type: 'create' | 'update' | 'delete',
+    folderId: string,
+    driveFileId: string | null = null
+  ): Promise<void> {
     await db.syncOperations.add({
       id: crypto.randomUUID(),
       type,
@@ -64,7 +69,8 @@ export class FolderService {
       timestamp: Date.now(),
       retryCount: 0,
       lastError: null,
-      status: 'pending'
+      status: 'pending',
+      driveFileId
     });
   }
 }

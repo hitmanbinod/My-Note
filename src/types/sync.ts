@@ -18,6 +18,8 @@ export interface SyncOperation {
   retryCount: number;
   lastError: string | null;
   status: SyncOperationStatus;
+  /** Drive file id captured at queue time — the entity may already be gone locally by the time a 'delete' op runs. */
+  driveFileId?: string | null;
 }
 
 export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'paused';
