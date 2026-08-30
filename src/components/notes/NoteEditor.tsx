@@ -107,15 +107,6 @@ function NoteEditor() {
   const plainText = extractPlainText(content);
   const wordCount = countWords(plainText);
 
-  if (!isNewNote && (loading || !initialized.current)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  // Note not found
   if (!loading && !isNewNote && !loadedNote) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -124,12 +115,15 @@ function NoteEditor() {
         </svg>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Note not found</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">The note you are looking for does not exist or has been deleted.</p>
-        <button 
-          onClick={() => navigate('/notes')}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg"
-        >
-          Go back to Notes
-        </button>
+        <button onClick={() => navigate('/notes')} className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg">Go back to Notes</button>
+      </div>
+    );
+  }
+
+  if (!isNewNote && (loading || !initialized.current)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner size="lg" />
       </div>
     );
   }

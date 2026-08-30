@@ -25,12 +25,24 @@ function WhiteboardsPage() {
 
   const renameBoard = async (id: string, currentTitle: string) => {
     const title = prompt('Rename whiteboard', currentTitle)?.trim();
-    if (title && title !== currentTitle) await whiteboardsRepository.update(id, { title });
+    if (title && title !== currentTitle) {
+      try {
+        setError('');
+        await whiteboardsRepository.update(id, { title });
+      } catch {
+        setError('Could not rename the whiteboard.');
+      }
+    }
   };
 
   const deleteBoard = async (id: string) => {
     if (confirm('Delete this whiteboard? Notes linking to it will show it as unavailable.')) {
-      await whiteboardsRepository.delete(id);
+      try {
+        setError('');
+        await whiteboardsRepository.delete(id);
+      } catch {
+        setError('Could not delete the whiteboard.');
+      }
     }
   };
 
@@ -40,7 +52,7 @@ function WhiteboardsPage() {
         <div>
           <p className="eyebrow mb-1">Canvas</p>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">Whiteboards</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Sketch ideas, map flows, and link boards from your notes.</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{boards.length} {boards.length === 1 ? 'board' : 'boards'} · Sketch ideas, map flows, and link boards from your notes.</p>
         </div>
         <button
           type="button"

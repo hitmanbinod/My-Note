@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  missing: false,
   board: { id: 'board-1', title: 'Flow', previewDataUrl: null },
   note: {
     id: 'note-1',
@@ -16,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   }
 }));
 
-vi.mock('@/hooks/useNotes', () => ({ useNote: () => ({ note: mocks.note, loading: false }) }));
+vi.mock('@/hooks/useNotes', () => ({ useNote: () => ({ note: mocks.missing ? null : mocks.note, loading: false }) }));
 vi.mock('dexie-react-hooks', () => ({ useLiveQuery: () => mocks.board }));
 vi.mock('@/lib/db/whiteboards.repository', () => ({ whiteboardsRepository: { get: vi.fn(), list: vi.fn() } }));
 vi.mock('@/services/NoteService', () => ({
@@ -42,5 +43,17 @@ describe('NoteEditor', () => {
     );
 
     expect(await screen.findByRole('link', { name: 'Open Flow' })).toBeTruthy();
+  });
+
+  it('shows the not-found state instead of loading forever', async () => {
+    mocks.missing = true;
+    render(
+      <MemoryRouter initialEntries={['/notes/missing']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes><Route path="/notes/:noteId" element={<NoteEditor />} /></Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Note not found' })).toBeTruthy();
+    mocks.missing = false;
   });
 });

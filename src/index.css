@@ -94,9 +94,6 @@
 .ProseMirror ul[data-type="taskList"] li { @apply flex items-start gap-2; }
 .ProseMirror ul[data-type="taskList"] li > label { @apply mt-1 flex-shrink-0; }
 
-.whiteboard-canvas { height: calc(100vh - 72px - 64px); min-height: 420px; }
-@media (max-width: 640px) { .whiteboard-canvas { height: calc(100vh - 72px - 64px); min-height: 360px; } }
-
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 35%, transparent); border-radius: 999px; }

@@ -34,6 +34,7 @@ describe('WhiteboardsPage', () => {
     renderPage();
 
     expect(await screen.findByText('System map')).toBeTruthy();
+    expect(screen.getByText(/1 board ·/)).toBeTruthy();
   });
 
   it('creates a whiteboard and opens its editor', async () => {

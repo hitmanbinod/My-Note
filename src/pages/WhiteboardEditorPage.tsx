@@ -38,10 +38,11 @@ function WhiteboardEditorPage() {
   const latestScene = useRef<SceneSnapshot | null>(null);
   const sceneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (board) setTitle(board.title);
-  }, [board]);
+  const loadedBoardId = useRef('');
+  const ignoredInitialChange = useRef(false);
+  const userInteracted = useRef(false);
+  const revision = useRef(0);
+  const saveChain = useRef(Promise.resolve<unknown>(undefined));
 
   const parsed = useMemo(() => {
     if (!board) return null;
@@ -53,25 +54,31 @@ function WhiteboardEditorPage() {
   }, [board]);
 
   useEffect(() => {
-    if (!parsed) return;
+    if (!board || !parsed || loadedBoardId.current === board.id) return;
+    loadedBoardId.current = board.id;
+    ignoredInitialChange.current = false;
+    userInteracted.current = false;
+    revision.current = 0;
+    setTitle(board.title);
     latestScene.current = {
       elements: parsed.data.elements || [],
       appState: parsed.data.appState || {},
       files: parsed.data.files || {}
     };
-  }, [parsed]);
+  }, [board, parsed]);
 
   const persistScene = useCallback(async () => {
     const scene = latestScene.current;
     if (!scene || !whiteboardId) return;
     sceneTimer.current = null;
+    const savingRevision = revision.current;
     try {
-      await whiteboardsRepository.update(whiteboardId, {
-        sceneJson: serializeScene(scene.elements, scene.appState, scene.files)
-      });
-      setSaveStatus('saved');
+      const sceneJson = serializeScene(scene.elements, scene.appState, scene.files);
+      saveChain.current = saveChain.current.catch(() => undefined).then(() => whiteboardsRepository.update(whiteboardId, { sceneJson }));
+      await saveChain.current;
+      if (revision.current === savingRevision) setSaveStatus('saved');
     } catch {
-      setSaveStatus('error');
+      if (revision.current === savingRevision) setSaveStatus('error');
     }
   }, [whiteboardId]);
 
@@ -114,18 +121,30 @@ function WhiteboardEditorPage() {
     appState: AppState,
     files: BinaryFiles
   ) => {
+    if (!ignoredInitialChange.current) {
+      ignoredInitialChange.current = true;
+      return;
+    }
+    if (parsed?.corrupt && !userInteracted.current) return;
     latestScene.current = { elements, appState, files };
+    revision.current += 1;
     setSaveStatus('saving');
     if (sceneTimer.current) clearTimeout(sceneTimer.current);
     if (previewTimer.current) clearTimeout(previewTimer.current);
     sceneTimer.current = setTimeout(() => void persistScene(), 700);
     previewTimer.current = setTimeout(() => void persistPreview(), 1_500);
-  }, [persistPreview, persistScene]);
+  }, [parsed?.corrupt, persistPreview, persistScene]);
 
   const saveTitle = async () => {
     const nextTitle = title.trim() || 'Untitled whiteboard';
     setTitle(nextTitle);
-    if (board && nextTitle !== board.title) await whiteboardsRepository.update(board.id, { title: nextTitle });
+    if (board && nextTitle !== board.title) {
+      try {
+        await whiteboardsRepository.update(board.id, { title: nextTitle });
+      } catch {
+        setSaveStatus('error');
+      }
+    }
   };
 
   const runExport = async (format: 'png' | 'svg') => {
@@ -160,7 +179,7 @@ function WhiteboardEditorPage() {
   const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 
   return (
-    <div className="flex min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-[64px] flex-wrap items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] px-3 py-2 sm:px-5">
         <button type="button" onClick={() => { flushPending(); navigate('/whiteboards'); }} className="pressable rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--panel-soft)]" aria-label="Back to whiteboards"><BackIcon /></button>
         <input
@@ -181,7 +200,11 @@ function WhiteboardEditorPage() {
         {exportError && <span role="alert" className="w-full text-right text-xs text-red-600 dark:text-red-400">{exportError}</span>}
       </div>
       {parsed.corrupt && <p role="alert" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">The saved scene could not be read. A blank recoverable canvas is open.</p>}
-      <div className="whiteboard-canvas bg-white">
+      <div
+        className="whiteboard-canvas min-h-0 flex-1 bg-white"
+        onPointerDownCapture={() => { userInteracted.current = true; }}
+        onKeyDownCapture={() => { userInteracted.current = true; }}
+      >
         <Excalidraw
           initialData={initialData}
           onChange={handleChange}

@@ -179,7 +179,7 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted)]">Create a whiteboard first, then insert it here.</p>
+          <p className="text-sm text-[var(--muted)]">No whiteboards yet. <a href="/whiteboards" className="font-semibold text-primary-600 hover:underline">Create whiteboard</a></p>
         )}
       </Modal>
     </>

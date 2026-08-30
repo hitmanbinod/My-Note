@@ -1,11 +1,13 @@
 import { FormEvent, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useFolders } from '@/hooks/useFolders';
 import { useNotes } from '@/hooks/useNotes';
 import { folderService } from '@/services/FolderService';
+import { whiteboardsRepository } from '@/lib/db/whiteboards.repository';
 
 function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { folders } = useFolders();
   const { notes: allNotes } = useNotes({ isDeleted: false, isArchived: false });
   const { notes: starred } = useNotes({ isDeleted: false, isStarred: true });
@@ -21,6 +23,17 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
     await folderService.createFolder({ name, color: '#776df1' });
     setFolderName('');
     setAddingFolder(false);
+  };
+
+  const createWhiteboard = async () => {
+    try {
+      const board = await whiteboardsRepository.create();
+      onClose();
+      navigate(`/whiteboards/${board.id}`);
+    } catch {
+      onClose();
+      navigate('/whiteboards');
+    }
   };
 
   return (
@@ -39,9 +52,9 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
           <Link to="/notes/new" onClick={onClose} className="pressable flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-600 px-3 text-sm font-semibold text-white shadow-sm shadow-primary-600/20 hover:bg-primary-700">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg>Note
           </Link>
-          <Link to="/whiteboards" onClick={onClose} className="pressable flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--panel-soft)]">
+          <button type="button" onClick={() => void createWhiteboard()} className="pressable flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--panel-soft)]">
             <BoardIcon />Board
-          </Link>
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto">
