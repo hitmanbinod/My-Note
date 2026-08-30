@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { whiteboardsRepository } from '@/lib/db/whiteboards.repository';
+import { Link } from 'react-router-dom';
 
 interface EditorToolbarProps {
   editor: Editor;
@@ -179,7 +180,7 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted)]">No whiteboards yet. <a href="/whiteboards" className="font-semibold text-primary-600 hover:underline">Create whiteboard</a></p>
+          <p className="text-sm text-[var(--muted)]">No whiteboards yet. <Link to="/whiteboards" className="font-semibold text-primary-600 hover:underline">Create whiteboard</Link></p>
         )}
       </Modal>
     </>
