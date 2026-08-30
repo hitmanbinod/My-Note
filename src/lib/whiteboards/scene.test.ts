@@ -87,6 +87,8 @@ describe('whiteboard scene helpers', () => {
       expect.objectContaining({ elements, mimeType: 'image/png' })
     );
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce();
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:whiteboard');
   });
 

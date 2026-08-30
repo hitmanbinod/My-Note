@@ -47,8 +47,9 @@ function NoteEditor() {
   const autoSave = useCallback(
     debounce(async () => {
       const { localNoteId: currentId, title: currentTitle, content: currentContent, tags: currentTags } = stateRef.current;
-      
-      if (!currentId && !currentTitle.trim() && (!currentContent.content || currentContent.content.length === 0 || (currentContent.content.length === 1 && !currentContent.content[0]?.content))) {
+      const hasContent = currentContent.content?.some(node => node.type !== 'paragraph' || Boolean(node.content?.length));
+
+      if (!currentId && !currentTitle.trim() && !hasContent) {
         return;
       }
 
@@ -106,7 +107,7 @@ function NoteEditor() {
   const plainText = extractPlainText(content);
   const wordCount = countWords(plainText);
 
-  if (loading && !isNewNote) {
+  if (!isNewNote && (loading || !initialized.current)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spinner size="lg" />

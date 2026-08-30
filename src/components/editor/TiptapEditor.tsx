@@ -35,7 +35,7 @@ function TiptapEditor({
   });
 
   // Keep track of the currently loaded note ID to prevent content reset on auto-save
-  const currentNoteIdRef = useRef<string | undefined>(noteId);
+  const currentNoteIdRef = useRef<string | undefined>();
 
   // Update editor content when note ID changes (for loading a different note)
   useEffect(() => {

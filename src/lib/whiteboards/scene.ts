@@ -110,6 +110,8 @@ function downloadBlob(blob: Blob, filename: string): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
