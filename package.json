@@ -1,7 +1,8 @@
 {
   "name": "notebook-app",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "A private, local-first notes and whiteboard app for Windows.",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -11,8 +12,9 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "electron": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win"
+    "desktop": "npm run build && electron .",
+    "electron": "npm run desktop",
+    "dist:win": "npm run build && electron-builder --win --x64"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
@@ -74,12 +76,25 @@
   "build": {
     "appId": "com.mynote.app",
     "productName": "My Notes",
+    "npmRebuild": false,
+    "directories": {
+      "output": "release-windows"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "My Notes",
+      "artifactName": "My-Notes-Setup-${version}.${ext}"
     }
   }
 }

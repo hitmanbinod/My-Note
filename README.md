@@ -1,6 +1,6 @@
-# My Notes - Secure Note-Taking PWA
+# My Notes - Secure Note-Taking App
 
-A production-quality, offline-first Progressive Web App for personal note-taking with Google Drive synchronization, rich text editing, and optional end-to-end encryption.
+A production-quality, offline-first Windows desktop app and Progressive Web App for personal note-taking with Google Drive synchronization, rich text editing, and optional end-to-end encryption.
 
 ## 🚀 Quick Start
 
@@ -48,6 +48,22 @@ Visit http://localhost:5173/auth-test to test your OAuth setup:
 - ✅ Test sign in/out
 - ✅ Verify token refresh
 - ✅ Test Drive API access
+
+### Windows desktop app
+
+Run the desktop app locally:
+
+```bash
+npm run desktop
+```
+
+Create the 64-bit Windows installer:
+
+```bash
+npm run dist:win
+```
+
+The installer is written to `release-windows/My-Notes-Setup-1.0.1.exe`. Google Drive sync in the desktop app defaults to `http://localhost:5173/auth/callback`, matching the redirect URI configured above. You can override it with `VITE_GOOGLE_DESKTOP_REDIRECT_URI`, but the value must exactly match an authorized redirect URI in Google Cloud.
 
 ## Features
 

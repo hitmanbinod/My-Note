@@ -4,9 +4,10 @@ import { arrayBufferToBase64 } from '@/lib/utils/crypto';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
 const WEB_REDIRECT_URI = `${window.location.origin}/auth/callback`;
-// Fixed port a packaged (file://) app can't derive from its own origin — must match the
-// loopback server in electron/main.cjs and be registered as an authorized redirect URI.
-const DESKTOP_REDIRECT_URI = 'http://127.0.0.1:5174/auth/callback';
+// A packaged file:// app needs an HTTP loopback callback. Keep the default aligned with
+// the redirect URI used throughout the Google OAuth setup guides, while allowing overrides.
+const DESKTOP_REDIRECT_URI =
+  import.meta.env.VITE_GOOGLE_DESKTOP_REDIRECT_URI || 'http://localhost:5173/auth/callback';
 const isElectron = Boolean(window.electronAPI?.isElectron);
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
@@ -68,7 +69,7 @@ export async function initiateGoogleAuth(): Promise<void> {
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 
   if (isElectron && window.electronAPI) {
-    const code = await window.electronAPI.startGoogleAuth(authUrl);
+    const code = await window.electronAPI.startGoogleAuth(authUrl, redirectUri);
     await exchangeCodeForTokens(code);
   } else {
     window.location.href = authUrl;
