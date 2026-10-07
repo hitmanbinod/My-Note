@@ -85,7 +85,7 @@ class ErrorBoundary extends Component<Props, State> {
               
               <button
                 onClick={() => window.location.reload()}
-                className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-primary-600 hover:bg-primary-700 text-[var(--on-brand)] font-semibold py-3 px-4 rounded-lg transition-colors"
               >
                 Reload App
               </button>

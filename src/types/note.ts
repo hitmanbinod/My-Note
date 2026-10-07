@@ -43,6 +43,10 @@ export interface Note {
   isEncrypted: boolean;
   encryptionVersion: number;
   conflictCopyOf: string | null;
+  /** Hidden behind the PIN lock; excluded from lists/search until unlocked. */
+  locked?: boolean;
+  /** All folders this note belongs to. folderId mirrors the first entry. */
+  folderIds?: string[];
 }
 
 export interface EncryptedNote {
@@ -91,12 +95,14 @@ export interface UpdateNoteInput {
   title?: string;
   content?: JSONContent;
   folderId?: string | null;
+  folderIds?: string[];
   tags?: string[];
   color?: string | null;
   isPinned?: boolean;
   isStarred?: boolean;
   isArchived?: boolean;
   isDeleted?: boolean;
+  locked?: boolean;
 }
 
 export interface NoteFilter {
@@ -106,6 +112,7 @@ export interface NoteFilter {
   isStarred?: boolean;
   isArchived?: boolean;
   isDeleted?: boolean;
+  isLocked?: boolean;
   searchQuery?: string;
 }
 

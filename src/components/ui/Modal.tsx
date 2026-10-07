@@ -30,25 +30,25 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
         </Transition.Child>
 
         {/* Modal */}
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Transition.Child
             as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0 scale-95"
+            enter="ease-out duration-200"
+            enterFrom="opacity-0 scale-[.98]"
             enterTo="opacity-100 scale-100"
-            leave="ease-in duration-200"
+            leave="ease-in duration-150"
             leaveFrom="opacity-100 scale-100"
-            leaveTo="opacity-0 scale-95"
+            leaveTo="opacity-0 scale-[.98]"
           >
             <Dialog.Panel
-              className={`w-full ${sizeStyles[size]} bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 max-h-[90vh] overflow-y-auto`}
+              className={`w-full ${sizeStyles[size]} rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5 shadow-xl shadow-black/10 max-h-[90vh] overflow-y-auto`}
             >
               {title && (
-                <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                <Dialog.Title className="mb-4 font-serif text-lg font-semibold text-[var(--ink)]">
                   {title}
                 </Dialog.Title>
               )}

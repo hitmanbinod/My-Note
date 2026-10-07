@@ -1,32 +1,106 @@
+/* Voice memo — minimal pill player with animated playback bars */
+.voice-memo { @apply my-3; }
+.voice-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 7px 12px; border-radius: 999px;
+  background: var(--panel-soft); border: 1px solid var(--line);
+}
+.voice-play {
+  flex: none; width: 30px; height: 30px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--brand); color: var(--on-brand);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.voice-play:hover { transform: scale(1.06); }
+.voice-play:active { transform: scale(.94); }
+.voice-wave { position: relative; flex: 1; height: 20px; min-width: 80px; cursor: pointer; display: flex; align-items: center; gap: 2px; overflow: hidden; }
+.voice-wave-track,
+.voice-wave-fill { position: absolute; inset: 0; display: flex; align-items: center; gap: 2px; overflow: hidden; }
+.voice-wave-track span { flex: 1; min-width: 1.5px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.voice-wave-fill { width: 0%; }
+.voice-wave-fill span { flex: 1; min-width: 1.5px; border-radius: 2px; background: var(--brand); }
+/* Bars bounce while the audio plays */
+.voice-row.is-playing .voice-wave-track span,
+.voice-row.is-playing .voice-wave-fill span { animation: voice-bounce 900ms ease-in-out infinite; }
+.voice-row.is-playing .voice-wave span:nth-child(2n) { animation-delay: 130ms; }
+.voice-row.is-playing .voice-wave span:nth-child(3n) { animation-delay: 260ms; }
+.voice-row.is-playing .voice-wave span:nth-child(5n) { animation-delay: 420ms; }
+@keyframes voice-bounce { 0%, 100% { transform: scaleY(.5); } 50% { transform: scaleY(1.2); } }
+.voice-time { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: center; }
+.voice-delete {
+  flex: none; border: 0; background: transparent; cursor: pointer; color: var(--muted);
+  padding: 4px; border-radius: 7px; opacity: 0; transition: opacity 120ms ease;
+}
+.voice-memo:hover .voice-delete { opacity: 1; }
+.voice-delete:hover { background: var(--panel); color: #dc2626; }
+.voice-transcript {
+  margin: 6px 12px 2px; padding: 7px 10px; border-radius: 10px;
+  background: var(--panel); border: 1px dashed var(--line);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.voice-transcript-text { flex: 1; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.voice-transcript-copy { flex: none; border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 11px; padding: 2px 4px; border-radius: 5px; }
+.voice-transcript-copy:hover { color: var(--ink); background: var(--panel-soft); }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Classic, minimal palette. Light = warm paper; Dark = near-black with one blue accent.
+   --p-* shade triplets and --brand are overwritten at runtime by the accent picker. */
 :root {
   color-scheme: light;
-  --app-bg: #f6f5f2;
-  --panel: #ffffff;
-  --panel-soft: #efeee9;
-  --ink: #24231f;
-  --muted: #716f68;
-  --line: #deddd7;
-  --brand: #635bdb;
-  --brand-strong: #5148c5;
-  --brand-soft: #ebe9ff;
+  --app-bg: #f4f3ef;
+  --panel: #faf9f6;
+  --panel-soft: #edece6;
+  --surface-3: #fdfdfb;
+  --ink: #181b1f;
+  --ink-2: #50555c;
+  --ink-3: #7a7f86;
+  --muted: var(--ink-2);
+  --line: rgb(0 0 0 / .08);
+  --line-strong: rgb(0 0 0 / .16);
+  --on-brand: #ffffff;
+  --shadow-pop: 0 8px 24px rgb(0 0 0 / .10), 0 0 0 1px var(--line);
+  --p-50: 238 244 254;
+  --p-100: 217 231 253;
+  --p-200: 182 208 251;
+  --p-300: 136 177 249;
+  --p-400: 90 156 248;
+  --p-500: 53 125 236;
+  --p-600: 42 95 208;
+  --p-700: 35 76 174;
+  --p-800: 32 64 139;
+  --p-900: 30 58 114;
+  --brand: rgb(var(--p-600));
+  --brand-strong: rgb(var(--p-700));
+  --brand-soft: rgb(var(--p-50));
+  --brand-text: var(--brand);
+  --warm: #c07a26;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --font-app: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-app);
 }
 
 .dark {
   color-scheme: dark;
-  --app-bg: #171816;
-  --panel: #20211f;
-  --panel-soft: #292a27;
-  --ink: #f2f1ec;
-  --muted: #aaa9a2;
-  --line: #393a36;
-  --brand: #948cff;
-  --brand-strong: #aaa4ff;
-  --brand-soft: #302e4f;
+  --app-bg: #0e0d0b;
+  --panel: #151512;
+  --panel-soft: #1d1d1a;
+  --surface-3: #272624;
+  --ink: #e6e8eb;
+  --ink-2: #a1a5ab;
+  --ink-3: #6b6f75;
+  --muted: var(--ink-2);
+  --line: rgb(255 255 255 / .08);
+  --line-strong: rgb(255 255 255 / .16);
+  --on-brand: #14110a;
+  --shadow-pop: 0 8px 24px rgb(0 0 0 / .35), 0 0 0 1px var(--line);
+  --brand: rgb(var(--p-500));
+  --brand-strong: rgb(var(--p-400));
+  --brand-soft: rgb(var(--p-900) / .45);
+  --brand-text: var(--brand);
+  --warm: #e8973d;
 }
 
 @layer base {
@@ -37,66 +111,436 @@
     min-height: 100vh;
     background: var(--app-bg);
     color: var(--ink);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-app);
+    font-size: 14px;
   }
   button, a { -webkit-tap-highlight-color: transparent; }
-  button:active, a.pressable:active { transform: scale(.975); }
+  button:active, a.pressable:active { transform: scale(.985); }
   button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
   }
+  ::selection { background: rgba(120, 130, 150, .35); }
 }
 
 @layer components {
   .app-panel {
     background: var(--panel);
     border: 1px solid var(--line);
-    box-shadow: 0 1px 1px rgb(0 0 0 / .025), 0 10px 30px rgb(0 0 0 / .03);
   }
   .muted { color: var(--muted); }
   .eyebrow {
-    color: var(--brand);
-    font-size: .7rem;
-    font-weight: 750;
+    color: var(--muted);
+    font-size: .68rem;
+    font-weight: 600;
     letter-spacing: .12em;
     text-transform: uppercase;
   }
+  .font-serif { font-family: var(--font-serif); }
   .pressable {
-    transition: transform 140ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
   }
 }
 
+/* Editor typography — quiet, classic, generous line height */
 .ProseMirror {
   @apply prose dark:prose-invert max-w-none;
-  min-height: 430px;
-  padding: 2rem clamp(1.25rem, 5vw, 4.5rem) 5rem;
+  min-height: 380px;
+  padding: 1.25rem clamp(1.25rem, 3.5vw, 3.25rem) 4.5rem;
   color: var(--ink);
-  font-size: 1.04rem;
-  line-height: 1.82;
+  font-family: var(--font-app);
+  font-size: var(--editor-font-size, 1rem);
+  line-height: var(--editor-line-height, 1.8);
   outline: none;
 }
 .ProseMirror p.is-editor-empty:first-child::before { color: var(--muted); content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
-.ProseMirror h1 { @apply mt-8 mb-4 text-3xl font-bold tracking-tight; }
-.ProseMirror h2 { @apply mt-7 mb-3 text-2xl font-bold tracking-tight; }
-.ProseMirror h3 { @apply mt-6 mb-2 text-xl font-semibold; }
-.ProseMirror ul, .ProseMirror ol { @apply my-4 pl-6; }
-.ProseMirror code { @apply rounded px-1.5 py-0.5 text-sm font-mono; background: var(--panel-soft); }
-.ProseMirror pre { @apply my-5 overflow-x-auto rounded-xl p-5; background: #191a18; color: #f4f3ee; }
-.ProseMirror pre code { @apply bg-transparent p-0; }
-.ProseMirror blockquote { border-left: 3px solid var(--brand); @apply my-5 pl-5 italic; color: var(--muted); }
-.ProseMirror hr { @apply my-8; border-color: var(--line); }
-.ProseMirror table { @apply my-5 w-full table-auto border-collapse; }
-.ProseMirror th { @apply border p-2 text-left font-semibold; background: var(--panel-soft); border-color: var(--line); }
-.ProseMirror td { @apply border p-2; border-color: var(--line); }
-.ProseMirror a { color: var(--brand); @apply cursor-pointer underline underline-offset-2; }
-.ProseMirror img { @apply h-auto max-w-full rounded-xl; }
-.ProseMirror ul[data-type="taskList"] { @apply list-none pl-0; }
-.ProseMirror ul[data-type="taskList"] li { @apply flex items-start gap-2; }
-.ProseMirror ul[data-type="taskList"] li > label { @apply mt-1 flex-shrink-0; }
+/* Headings scale with the editor font-size (em), UpNote-style */
+.ProseMirror h1 { @apply mt-8 mb-3 text-[1.65em] font-bold tracking-tight; }
+.ProseMirror h2 { @apply mt-7 mb-2.5 text-[1.35em] font-bold tracking-tight; }
+.ProseMirror h3 { @apply mt-6 mb-2 text-[1.12em] font-semibold; }
+.ProseMirror ul, .ProseMirror ol { @apply my-3.5 pl-6; }
+.ProseMirror code { @apply rounded px-1.5 py-0.5 text-[.85em] font-mono; background: var(--panel-soft); }
+/* Copy button on code blocks — appears on hover (Claude-style) */
+.ProseMirror pre { position: relative; }
+.code-copy-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 5;
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  background: rgba(255, 255, 255, .08); color: #9aa4b2;
+  border: 1px solid rgba(255, 255, 255, .12);
+  font-size: 11px; font-weight: 600; line-height: 1;
+  opacity: 0; transition: opacity 140ms ease, background 140ms ease;
+}
+.ProseMirror pre:hover .code-copy-btn,
+.code-copy-btn:focus-visible,
+.code-copy-btn.is-copied { opacity: 1; }
+.code-copy-btn:hover { background: rgba(255, 255, 255, .16); color: #e6edf3; }
+.code-copy-btn.is-copied { color: #7ee2a8; }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
+/* Editor paragraphs sit tighter than the prose defaults — matches UpNote's
+   compact line rhythm, and keeps text wrapping beside floated images readable */
+.ProseMirror p { margin: 0.7em 0; }
+
+/* Quote block — left bar + tint only. The typography plugin's italics and
+   open/close-quote pseudo-elements are the root cause of the “ ” marks and
+   italics users saw; these resets remove them in editor AND reader. */
+.ProseMirror blockquote,
+.reader-content .ProseMirror blockquote {
+  font-style: normal;
+  font-weight: inherit;
+  quotes: none;
+  border-left: 3px solid var(--line-strong);
+  background: var(--panel-soft);
+  border-radius: 0 8px 8px 0;
+  margin: 0.9em 0;
+  padding: 12px 16px;
+  color: var(--ink);
+}
+.ProseMirror blockquote p,
+.reader-content .ProseMirror blockquote p {
+  font-style: normal;
+  margin: 0;
+}
+.ProseMirror blockquote p::before,
+.ProseMirror blockquote p::after,
+.reader-content .ProseMirror blockquote p::before,
+.reader-content .ProseMirror blockquote p::after { content: none !important; }
+/* Optional mark-palette tints (quote ·· menu) */
+.ProseMirror blockquote[data-bg='red'] { background: var(--mark-red); border-left-color: var(--mark-red); }
+.ProseMirror blockquote[data-bg='orange'] { background: var(--mark-orange); border-left-color: var(--mark-orange); }
+.ProseMirror blockquote[data-bg='yellow'] { background: var(--mark-yellow); border-left-color: var(--mark-yellow); }
+.ProseMirror blockquote[data-bg='green'] { background: var(--mark-green); border-left-color: var(--mark-green); }
+.ProseMirror blockquote[data-bg='blue'] { background: var(--mark-blue); border-left-color: var(--mark-blue); }
+.ProseMirror blockquote[data-bg='pink'] { background: var(--mark-pink); border-left-color: var(--mark-pink); }
+.ProseMirror blockquote[data-bg='purple'] { background: var(--mark-purple); border-left-color: var(--mark-purple); }
+.ProseMirror blockquote[data-bg='gray'] { background: var(--mark-gray); border-left-color: var(--mark-gray); }
+
+/* ·· tool on quotes reveals on hover */
+.quote-node:hover .embed-tool { opacity: 1; transform: scale(1); }
+
+/* Highlighter tool cursor — a small marker pen */
+.reader-highlighting, .reader-highlighting .ProseMirror, .ProseMirror.highlight-painting {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'><path d='M9 11.5 13 7.5 20.5 15 15 20.5l-6-6Z' fill='%23f9e79b' stroke='%23555555' stroke-width='1.5'/><path d='m13 7.5 3.5-3.5 3.5 3.5-3.5 3.5z' fill='%23aaaaaa' stroke='%23555555' stroke-width='1.5'/><path d='M4.5 19.5h6' stroke='%23555555' stroke-width='2' stroke-linecap='round'/></svg>") 4 17, text;
+}
+.ProseMirror pre { @apply my-5 overflow-x-auto rounded-lg p-4; background: #0d1117; color: #e6edf3; border: 1px solid #30363d; }
+/* lowlight tokens keep the github-dark palette; the card chrome stays ours */
+.ProseMirror pre .hljs { background: transparent; padding: 0; }
+.ProseMirror pre code { @apply bg-transparent p-0; }
+.ProseMirror hr { @apply my-8; border-color: var(--line-strong); }
+.ProseMirror table { @apply my-5 w-full table-auto border-collapse; }
+.ProseMirror tbody tr:hover td { background: color-mix(in srgb, var(--panel-soft) 50%, transparent); }
+.ProseMirror th { @apply border p-2 text-left font-semibold; background: var(--panel-soft); border-color: var(--line-strong); }
+.ProseMirror td { @apply border p-2; border-color: var(--line-strong); }
+/* Column resizing (prosemirror-tables): minimal brand sliver at the cell edge */
+.ProseMirror td, .ProseMirror th { position: relative; }
+.ProseMirror .tableWrapper { overflow-x: auto; }
+.ProseMirror .column-resize-handle {
+  position: absolute; top: 0; bottom: 0; right: -2px; width: 4px;
+  border-radius: 2px; background: var(--brand);
+  opacity: 0; transition: opacity 120ms ease; pointer-events: none; z-index: 20;
+}
+.ProseMirror table:hover .column-resize-handle { opacity: .3; }
+.ProseMirror .column-resize-handle:hover, body.col-resizing .ProseMirror .column-resize-handle { opacity: .85; }
+.ProseMirror.resize-cursor, .ProseMirror table.resize-cursor { cursor: col-resize; }
+.ProseMirror .selectedCell:after {
+  content: ''; position: absolute; inset: 0; background: var(--brand); opacity: .12; pointer-events: none; z-index: 2;
+}
+.ProseMirror a { color: var(--brand); @apply cursor-pointer underline underline-offset-2; }
+.ProseMirror img { @apply h-auto max-w-full rounded-md; }
+.ProseMirror ul[data-type="taskList"] { @apply list-none pl-1; }
+.ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 8px; }
+.ProseMirror ul[data-type="taskList"] li > label {
+  /* Center the checkbox on the first text line (uses the editor line-height) */
+  margin-top: calc((var(--editor-line-height, 1.8) * 1em - 15px) / 2);
+  flex-shrink: 0;
+}
+.ProseMirror ul[data-type="taskList"] li > div { min-width: 0; flex: 1; }
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  opacity: .5;
+  text-decoration: line-through;
+  text-decoration-color: var(--muted);
+}
+/* Native-looking checkboxes */
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer;
+}
+
+/* Reader mode — session highlight colors (CSS Custom Highlight API), drawn
+   from the shared mark palette (src/lib/theme/palette.ts) */
+:root {
+  --mark-red: #f9dedc;
+  --mark-orange: #fce4d0;
+  --mark-yellow: #f9e79b;
+  --mark-green: #cdecD4;
+  --mark-blue: #cfe1fa;
+  --mark-pink: #f8d3e6;
+  --mark-purple: #ecdcf8;
+  --mark-gray: #e2e5e8;
+}
+.dark {
+  --mark-red: rgb(229 72 77 / .26);
+  --mark-orange: rgb(240 118 43 / .24);
+  --mark-yellow: rgb(217 165 20 / .3);
+  --mark-green: rgb(63 168 96 / .26);
+  --mark-blue: rgb(79 142 247 / .26);
+  --mark-pink: rgb(236 106 168 / .26);
+  --mark-purple: rgb(155 110 222 / .28);
+  --mark-gray: rgb(152 160 168 / .28);
+}
+::highlight(reader-hl-red) { background-color: var(--mark-red); color: #1c1917; }
+::highlight(reader-hl-orange) { background-color: var(--mark-orange); color: #1c1917; }
+::highlight(reader-hl-yellow) { background-color: var(--mark-yellow); color: #1c1917; }
+::highlight(reader-hl-green) { background-color: var(--mark-green); color: #1c1917; }
+::highlight(reader-hl-blue) { background-color: var(--mark-blue); color: #1c1917; }
+::highlight(reader-hl-pink) { background-color: var(--mark-pink); color: #1c1917; }
+::highlight(reader-hl-purple) { background-color: var(--mark-purple); color: #1c1917; }
+::highlight(reader-hl-gray) { background-color: var(--mark-gray); color: #1c1917; }
+.dark ::highlight(reader-hl-red) { color: var(--ink); }
+.dark ::highlight(reader-hl-orange) { color: var(--ink); }
+.dark ::highlight(reader-hl-yellow) { color: var(--ink); }
+.dark ::highlight(reader-hl-green) { color: var(--ink); }
+.dark ::highlight(reader-hl-blue) { color: var(--ink); }
+.dark ::highlight(reader-hl-pink) { color: var(--ink); }
+.dark ::highlight(reader-hl-purple) { color: var(--ink); }
+.dark ::highlight(reader-hl-gray) { color: var(--ink); }
+.reader-content .ProseMirror { padding: 0; min-height: 0; }
+/* Sticky text notes in reader mode — amber, theme-aware */
+.reader-text-note {
+  background: #fff3b8;
+  border: 1px solid #e6c84a;
+}
+.dark .reader-text-note {
+  background: rgb(245 200 66 / .16);
+  border-color: rgb(245 200 66 / .45);
+}
+.reader-text-note textarea::placeholder { color: color-mix(in oklch, var(--ink) 55%, transparent); }
+
+/* Whiteboard embed — resizable like images (UpNote-style corner grip + width badge) */
+.whiteboard-embed { margin: 1.2em 0; }
+.whiteboard-embed-frame { position: relative; line-height: 0; }
+.whiteboard-embed-frame > div:first-of-type { line-height: normal; }
+.wb-badge {
+  position: absolute; top: 8px; left: 8px; z-index: 7;
+  padding: 3px 7px; font: 600 11px/1 var(--font-app); font-variant-numeric: tabular-nums;
+  color: var(--on-brand); background: var(--brand); border-radius: 6px;
+  opacity: 0; transition: opacity 120ms; pointer-events: none;
+}
+.whiteboard-embed-frame:has(.embed-tool--resize:active) .wb-badge { opacity: 1; }
+
+/* Merged 48px top bar: empty space drags the window; controls stay clickable.
+   The inner width leaves room for the native window buttons (Windows overlay). */
+.app-drag { -webkit-app-region: drag; }
+.app-drag button, .app-drag input, .app-drag a, .app-drag [role='button'] { -webkit-app-region: no-drag; }
+.topbar-inner { width: env(titlebar-area-width, 100%); }
+
+/* Circular overlay tools shared by image + whiteboard embeds (·· menu, resize grip) */.embed-tool {
+  position: absolute;
+  display: grid; place-items: center;
+  width: 26px; height: 26px;
+  padding: 0; border: 0; border-radius: 50%;
+  background: rgb(24 24 27 / .78);
+  color: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / .28);
+  opacity: 0; transform: scale(.92);
+  transition: opacity 130ms ease, transform 130ms ease, background 130ms ease;
+  z-index: 8;
+}
+.embed-tool:hover { background: rgb(24 24 27 / .95); }
+.embed-tool:focus-visible { opacity: 1; transform: scale(1); outline: 2px solid var(--brand); outline-offset: 2px; }
+.embed-tool--menu { top: 8px; right: 8px; }
+.embed-tool--resize { right: 8px; bottom: 8px; cursor: nwse-resize; touch-action: none; }
+.img-frame:hover .embed-tool,
+.img-frame.is-resizing .embed-tool,
+.whiteboard-embed-frame:hover .embed-tool { opacity: 1; transform: scale(1); }
+
+/* Image resize: invisible corner drag zone (UpNote-style — no visible grip) */
+.img-resize-zone {
+  position: absolute; right: 0; bottom: 0;
+  width: 26px; height: 26px;
+  cursor: nwse-resize; touch-action: none; z-index: 8;
+}
+.reader-color-red { background: var(--mark-red); }
+.reader-color-orange { background: var(--mark-orange); }
+.reader-color-yellow { background: var(--mark-yellow); }
+.reader-color-green { background: var(--mark-green); }
+.reader-color-blue { background: var(--mark-blue); }
+.reader-color-pink { background: var(--mark-pink); }
+.reader-color-purple { background: var(--mark-purple); }
+.reader-color-gray { background: var(--mark-gray); }
+
+/* Resizable pane handles (sidebar + note list) */
+.col-resize-handle {
+  position: relative;
+  width: 5px;
+  margin: 0 -2.5px;
+  z-index: 25;
+  cursor: col-resize;
+  flex: none;
+}
+.col-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset: 0 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 140ms ease;
+}
+.col-resize-handle:hover::after,
+.col-resize-handle:active::after { background: var(--brand); opacity: .55; }
+body.col-resizing { cursor: col-resize; user-select: none; }
+/* No width transitions while a drag is live — the CSS var must land instantly */
+body.col-resizing .sidebar-pane { transition: none; }
+/* While dragging one pane, only THAT handle lights up — never both */
+body.col-resizing[data-resizing="sidebar"] .col-resize-handle[data-resize="sidebar"]::after,
+body.col-resizing[data-resizing="list"] .col-resize-handle[data-resize="list"]::after { background: var(--brand); opacity: .55; }
+
+/* Image node — rest/hover/selected states, UpNote-style corner resize (guide §2–§6) */
+.img-node { display: block; margin: 1.2em auto; }
+/* Left/right alignment floats the image so text wraps around it, newspaper-style
+   (turn "Wrap text" off in the ·· menu to keep it a block) */
+.img-node[data-align='left'][data-float='true'] { float: left; margin: 0.2em 1em 0.4em 0; }
+.img-node[data-align='right'][data-float='true'] { float: right; margin: 0.2em 0 0.4em 1em; }
+.img-node[data-align='left'][data-float='false'] { margin: 1.2em 1.2em 1.2em 0; }
+.img-node[data-align='right'][data-float='false'] { margin: 1.2em 0 1.2em 1.2em; }
+/* While corner-resizing, the left edge is pinned in place (no center drift) */
+.img-node.pin-left { float: none; margin: 1.2em 0 0.8em 0; }
+
+.img-frame {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+  border-radius: 8px;
+  transition: width 180ms cubic-bezier(.2, .8, .2, 1), box-shadow 120ms ease;
+}
+.img-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+  user-select: none;
+}
+.img-frame:hover { box-shadow: 0 0 0 1px var(--line-strong); }
+.img-frame.is-selected { box-shadow: 0 0 0 2px var(--brand); }
+.img-frame.is-resizing { transition: none; }
+.img-frame.is-resizing, .img-frame.is-resizing * { cursor: nwse-resize !important; }
+
+.img-badge {
+  position: absolute; top: 8px; left: 8px; z-index: 6;
+  padding: 3px 7px;
+  font: 600 11px/1 var(--font-app); font-variant-numeric: tabular-nums;
+  color: var(--on-brand); background: var(--brand);
+  border-radius: 6px;
+  opacity: 0; transition: opacity 120ms; pointer-events: none;
+}
+.img-frame.is-resizing .img-badge { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .img-frame, .embed-tool { transition: none; animation: none; }
+}
+
+/* Typewriter mode: breathing room so the caret can sit mid-screen (line spacing follows the editor setting) */
+.typewriter-content .ProseMirror {
+  padding-top: 18vh;
+  padding-bottom: 24vh;
+  min-height: 0;
+}
+body.col-resizing, body.col-resizing * { transition: none !important; }
+
+/* "/" slash menu */
+.slash-menu {
+  position: fixed;
+  z-index: 60;
+  width: 260px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgb(0 0 0 / .22);
+  padding: 5px;
+}
+.slash-menu button {
+  display: flex; width: 100%; align-items: center; gap: 10px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--ink); font-size: 13px; text-align: left;
+  padding: 7px 10px; border-radius: 7px;
+}
+.slash-menu button:hover, .slash-menu button.is-active { background: var(--panel-soft); }
+.slash-menu button.is-active { color: var(--brand); }
+
+/* Voice memo player — minimal card with live waveform progress + transcript */
+.voice-memo {
+  display: flex; flex-direction: column; gap: 8px;
+  border-radius: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 10px 14px 12px; margin: 10px 0; max-width: 460px;
+}
+.voice-memo .voice-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.voice-memo .voice-play {
+  flex: none; width: 34px; height: 34px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgb(0 0 0 / .18);
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.voice-memo .voice-play:hover { filter: brightness(1.07); }
+.voice-memo .voice-play:active { transform: scale(.94); }
+.voice-memo .voice-time { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: center; }
+.voice-memo .voice-wave { position: relative; flex: 1; height: 26px; min-width: 90px; cursor: pointer; display: flex; align-items: center; }
+.voice-memo .voice-wave-track,
+.voice-memo .voice-wave-fill { position: absolute; inset: 0; display: flex; align-items: center; gap: 2px; overflow: hidden; }
+.voice-memo .voice-wave-fill { width: 0%; }
+.voice-memo .voice-wave-track span { flex: 1; min-width: 1.5px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.voice-memo .voice-wave-fill span { flex: 1; min-width: 1.5px; border-radius: 2px; background: var(--brand); }
+.voice-memo .voice-delete {
+  flex: none; border: 0; background: transparent; cursor: pointer; color: var(--muted);
+  padding: 5px; border-radius: 7px;
+}
+.voice-memo .voice-delete:hover { background: var(--panel); color: #dc2626; }
+.voice-memo .voice-transcript {
+  border-top: 1px dashed var(--line); padding-top: 7px;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.voice-memo .voice-transcript-text { flex: 1; min-width: 0; font-size: 12px; line-height: 1.5; color: var(--muted); font-style: italic; }
+.voice-memo .voice-transcript-copy {
+  flex: none; border: 0; background: transparent; cursor: pointer; padding: 0;
+  font-size: 11px; font-weight: 600; color: var(--brand);
+}
+
+/* TeX formula chip */
+.inline-math { padding: 0 2px; cursor: pointer; }
+.inline-math .katex { font-size: 1.05em; }
+
+/* Embedded video */
+.video-embed { position: relative; width: 100%; max-width: 760px; aspect-ratio: 16 / 9; margin: 12px 0; border-radius: 8px; overflow: hidden; background: #000; }
+.video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* Editor toolbar dropdown menus */
+.toolbar-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+  background: var(--surface-3, var(--panel)); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: var(--shadow-pop); padding: 4px; min-width: 130px;
+  max-width: calc(100vw - 16px);
+}
+/* Right-anchored variant (custom rule, beats the base left: 0) */
+.toolbar-menu.menu-right { left: auto; right: 0; }
+.toolbar-menu button {
+  display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: transparent;
+  color: var(--ink); cursor: pointer; font-size: 13px; padding: 6px 9px; border-radius: 6px; text-align: left;
+}
+.toolbar-menu button:hover { background: var(--panel-soft); }
+.toolbar-menu button.is-active { color: var(--brand); background: var(--brand-soft); }
+.toolbar-menu .menu-separator { margin: 4px 2px; border-top: 1px solid var(--line); }
+.toolbar-menu.drop-up { top: auto; bottom: calc(100% + 6px); }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 35%, transparent); border-radius: 999px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 32%, transparent); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); border: 2px solid transparent; background-clip: content-box; }
+/* Scrollable strips (editor toolbar) that scroll without showing a scrollbar */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .animate-spin { animation: spin .75s linear infinite; }
 

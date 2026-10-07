@@ -1,8 +1,8 @@
 {
-  "name": "My Notes",
-  "short_name": "Notes",
+  "name": "Tipot",
+  "short_name": "Tipot",
   "description": "A private, local-first writing space that works offline.",
-  "theme_color": "#635bdb",
+  "theme_color": "#3761e1",
   "background_color": "#f6f5f2",
   "display": "standalone",
   "orientation": "portrait",
@@ -10,7 +10,7 @@
   "start_url": "/",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

@@ -197,7 +197,7 @@ function DiagnosticPage() {
               <div className="space-y-3">
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="w-full bg-primary-600 hover:bg-primary-700 text-[var(--on-brand)] font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
                   Refresh Diagnostics
                 </button>

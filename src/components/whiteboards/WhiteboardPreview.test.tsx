@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ board: undefined as undefined | { id: string; title: string; previewDataUrl: string | null } }));
@@ -8,10 +9,12 @@ vi.mock('@/lib/db/whiteboards.repository', () => ({ whiteboardsRepository: { get
 
 import WhiteboardPreview from './WhiteboardPreview';
 
+const renderPreview = (boardId: string) => render(<MemoryRouter><WhiteboardPreview boardId={boardId} /></MemoryRouter>);
+
 describe('WhiteboardPreview', () => {
   it('links an available board to its editor', () => {
     mocks.board = { id: 'board-1', title: 'Launch flow', previewDataUrl: 'data:image/png;base64,preview' };
-    render(<WhiteboardPreview boardId="board-1" />);
+    renderPreview('board-1');
 
     expect(screen.getByRole('link', { name: /open launch flow/i }).getAttribute('href')).toBe('/whiteboards/board-1');
     expect(document.querySelector('img')?.getAttribute('src')).toBe(mocks.board.previewDataUrl);
@@ -19,7 +22,7 @@ describe('WhiteboardPreview', () => {
 
   it('keeps a readable placeholder when the linked board was deleted', () => {
     mocks.board = undefined;
-    render(<WhiteboardPreview boardId="missing" />);
+    renderPreview('missing');
 
     expect(screen.getByText('Whiteboard unavailable')).toBeTruthy();
   });

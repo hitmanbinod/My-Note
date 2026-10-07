@@ -14,8 +14,11 @@ export function useSync(drive = false): SyncInfo {
     if (!drive) return;
 
     runSync();
-    const interval = setInterval(runSync, SYNC_INTERVAL_MS);
-    const onOnline = () => runSync();
+    // Interval ticks are quiet-aware: runSync skips Drive entirely when
+    // nothing is queued and the last pull is recent, so an idle workspace
+    // never shows "Syncing…" out of nowhere.
+    const interval = setInterval(() => void runSync(), SYNC_INTERVAL_MS);
+    const onOnline = () => void runSync(true);
     window.addEventListener('online', onOnline);
 
     return () => {

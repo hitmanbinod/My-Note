@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Note } from '@/types';
 import { db } from '@/lib/db/database';
+import { isUnlocked } from '@/lib/lock';
 
 export function useSearch(query: string, options?: { folderId?: string | null }) {
   const [results, setResults] = useState<Note[]>([]);
@@ -17,11 +18,11 @@ export function useSearch(query: string, options?: { folderId?: string | null })
 
     const performSearch = async () => {
       try {
-        // Get all non-deleted notes
-        const allNotes = await db.notes
-          .where('isDeleted')
-          .equals(0)
-          .toArray() as Note[];
+        // IndexedDB cannot index booleans — filter in JS (a .where('isDeleted').equals(0)
+        // query silently matches nothing). Locked notes stay hidden until unlocked.
+        const allNotes = (await db.notes.toArray()).filter(
+          (note) => !note.isDeleted && !(note.locked && !isUnlocked())
+        ) as Note[];
 
         const lowerQuery = query.toLowerCase();
         
@@ -78,10 +79,9 @@ export function useSearchSuggestions(query: string) {
 
     const getSuggestions = async () => {
       try {
-        const allNotes = await db.notes
-          .where('isDeleted')
-          .equals(0)
-          .toArray() as Note[];
+        const allNotes = (await db.notes.toArray()).filter(
+          (note) => !note.isDeleted && !(note.locked && !isUnlocked())
+        ) as Note[];
 
         // Extract unique tags that match
         const matchingTags = new Set<string>();

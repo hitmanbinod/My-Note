@@ -4,7 +4,7 @@ import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles, ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { whiteboardsRepository } from '@/lib/db/whiteboards.repository';
 import {
   createPreview,
@@ -27,6 +27,14 @@ interface SceneSnapshot {
 function WhiteboardEditorPage() {
   const { whiteboardId = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Back returns to wherever the board was opened from — usually the note that
+  // embeds it; a direct deep link (no history entry) falls back to the list.
+  const goBack = () => {
+    flushPending();
+    if (location.key !== 'default') navigate(-1);
+    else navigate('/whiteboards');
+  };
   const board = useLiveQuery(
     () => whiteboardId ? whiteboardsRepository.get(whiteboardId) : undefined,
     [whiteboardId],
@@ -43,6 +51,11 @@ function WhiteboardEditorPage() {
   const userInteracted = useRef(false);
   const revision = useRef(0);
   const saveChain = useRef(Promise.resolve<unknown>(undefined));
+  // Auto-save hygiene: appState-only churn (pan/zoom/tool pick) is not an edit,
+  // and a board that never received content is never persisted as "edited".
+  const lastSignature = useRef('');
+  const everHadContent = useRef(false);
+  const titleEdited = useRef(false);
 
   const parsed = useMemo(() => {
     if (!board) return null;
@@ -53,6 +66,14 @@ function WhiteboardEditorPage() {
     }
   }, [board]);
 
+  // Elements + file keys identify real content; appState (pan/zoom/active tool)
+  // changes alone must not mark the board edited.
+  const sceneSignature = useCallback(
+    (elements: readonly ExcalidrawElement[], files: BinaryFiles) =>
+      `${JSON.stringify(elements)}|${Object.keys(files).sort().join(',')}`,
+    []
+  );
+
   useEffect(() => {
     if (!board || !parsed || loadedBoardId.current === board.id) return;
     loadedBoardId.current = board.id;
@@ -60,12 +81,37 @@ function WhiteboardEditorPage() {
     userInteracted.current = false;
     revision.current = 0;
     setTitle(board.title);
+    const elements = parsed.data.elements || [];
+    everHadContent.current = elements.some((el) => !el.isDeleted);
+    lastSignature.current = sceneSignature(elements, parsed.data.files || {});
     latestScene.current = {
-      elements: parsed.data.elements || [],
+      elements,
       appState: parsed.data.appState || {},
       files: parsed.data.files || {}
     };
-  }, [board, parsed]);
+  }, [board, parsed, sceneSignature]);
+
+  // Leaving an untouched, still-empty board removes it again instead of
+  // littering the boards list with "Untitled whiteboard" shells. The short
+  // delay lets a StrictMode double-mount (or a same-route remount) cancel it —
+  // only a genuine leave goes through.
+  const emptyBoardDeleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (emptyBoardDeleteTimer.current) {
+      clearTimeout(emptyBoardDeleteTimer.current);
+      emptyBoardDeleteTimer.current = null;
+    }
+    return () => {
+      if (!whiteboardId || everHadContent.current || titleEdited.current) return;
+      emptyBoardDeleteTimer.current = setTimeout(() => {
+        emptyBoardDeleteTimer.current = null;
+        void saveChain.current
+          .catch(() => undefined)
+          .then(() => whiteboardsRepository.delete(whiteboardId))
+          .catch(() => undefined);
+      }, 120);
+    };
+  }, [whiteboardId]);
 
   const persistScene = useCallback(async () => {
     const scene = latestScene.current;
@@ -123,9 +169,17 @@ function WhiteboardEditorPage() {
   ) => {
     if (!ignoredInitialChange.current) {
       ignoredInitialChange.current = true;
+      lastSignature.current = sceneSignature(elements, files);
       return;
     }
     if (parsed?.corrupt && !userInteracted.current) return;
+    const signature = sceneSignature(elements, files);
+    if (signature === lastSignature.current) return;
+    lastSignature.current = signature;
+    if (!everHadContent.current) {
+      if (!elements.some((el) => !el.isDeleted)) return;
+      everHadContent.current = true;
+    }
     latestScene.current = { elements, appState, files };
     revision.current += 1;
     setSaveStatus('saving');
@@ -133,7 +187,7 @@ function WhiteboardEditorPage() {
     if (previewTimer.current) clearTimeout(previewTimer.current);
     sceneTimer.current = setTimeout(() => void persistScene(), 700);
     previewTimer.current = setTimeout(() => void persistPreview(), 1_500);
-  }, [parsed?.corrupt, persistPreview, persistScene]);
+  }, [parsed?.corrupt, persistPreview, persistScene, sceneSignature]);
 
   const saveTitle = async () => {
     const nextTitle = title.trim() || 'Untitled whiteboard';
@@ -141,6 +195,7 @@ function WhiteboardEditorPage() {
     if (board && nextTitle !== board.title) {
       try {
         await whiteboardsRepository.update(board.id, { title: nextTitle });
+        titleEdited.current = true;
       } catch {
         setSaveStatus('error');
       }
@@ -181,7 +236,7 @@ function WhiteboardEditorPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-[64px] flex-wrap items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] px-3 py-2 sm:px-5">
-        <button type="button" onClick={() => { flushPending(); navigate('/whiteboards'); }} className="pressable rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--panel-soft)]" aria-label="Back to whiteboards"><BackIcon /></button>
+        <button type="button" onClick={goBack} className="pressable rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--panel-soft)]" aria-label="Back"><BackIcon /></button>
         <input
           value={title}
           onChange={event => setTitle(event.target.value)}

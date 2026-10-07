@@ -7,18 +7,22 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
+        sans: ['var(--font-app)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: {
-          50: '#f5f3ff',
-          100: '#ebe9ff',
-          200: '#d9d5ff',
-          300: '#beb7ff',
-          400: '#9b91ff',
-          500: '#776df1',
-          600: '#635bdb',
-          700: '#5148c5',
-          800: '#443da2',
-          900: '#393681',
+          50: 'rgb(var(--p-50) / <alpha-value>)',
+          100: 'rgb(var(--p-100) / <alpha-value>)',
+          200: 'rgb(var(--p-200) / <alpha-value>)',
+          300: 'rgb(var(--p-300) / <alpha-value>)',
+          400: 'rgb(var(--p-400) / <alpha-value>)',
+          500: 'rgb(var(--p-500) / <alpha-value>)',
+          600: 'rgb(var(--p-600) / <alpha-value>)',
+          700: 'rgb(var(--p-700) / <alpha-value>)',
+          800: 'rgb(var(--p-800) / <alpha-value>)',
+          900: 'rgb(var(--p-900) / <alpha-value>)',
         },
       },
       typography: {

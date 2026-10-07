@@ -1,11 +1,26 @@
 import { Note, EncryptedNote, CreateNoteInput, UpdateNoteInput, NoteFilter, NoteSortField, NoteSortOrder } from '@/types';
 import { notesRepository } from '@/lib/db/notes.repository';
+import { noteVersionsRepository } from '@/lib/db/note-versions.repository';
 import { db } from '@/lib/db/database';
 import { encryptNote, decryptNote, deriveKey } from '@/lib/crypto/encryption';
 import { base64ToArrayBuffer } from '@/lib/utils/crypto';
+import { isUnlocked } from '@/lib/lock';
+import { scheduleSync } from '@/lib/sync/sync-service';
 
 export class NoteService {
   private encryptionKey: CryptoKey | null = null;
+
+  /** Throttle for version snapshots: at most one per note per 30 seconds. */
+  private static lastSnapshotAt: Record<string, number> = {};
+
+  /**
+   * Ids of folders whose contents are PIN-locked while the session is locked.
+   */
+  private async lockedFolderIds(): Promise<Set<string>> {
+    if (isUnlocked()) return new Set();
+    const folders = await db.folders.toArray();
+    return new Set(folders.filter((folder) => folder.locked).map((folder) => folder.id));
+  }
 
   /**
    * Set encryption key for the session
@@ -117,7 +132,19 @@ export class NoteService {
   async updateNote(id: string, updates: UpdateNoteInput): Promise<Note | undefined> {
     const existing = await this.getNote(id);
     if (!existing) return undefined;
-    
+
+    // Snapshot the previous content before meaningful changes (UpNote-style history)
+    const contentChanged =
+      (updates.title !== undefined && updates.title !== existing.title) ||
+      (updates.content !== undefined && JSON.stringify(updates.content) !== JSON.stringify(existing.content));
+    if (contentChanged) {
+      const last = NoteService.lastSnapshotAt[id] ?? 0;
+      if (Date.now() - last > 30_000) {
+        NoteService.lastSnapshotAt[id] = Date.now();
+        await noteVersionsRepository.add(id, existing.title, existing.content, existing.plainTextContent);
+      }
+    }
+
     // Update note
     const updated = await notesRepository.update(id, updates);
     if (!updated) return undefined;
@@ -171,7 +198,16 @@ export class NoteService {
     sortBy?: NoteSortField,
     sortOrder?: NoteSortOrder
   ): Promise<Note[]> {
-    const notes = await notesRepository.list(filter, sortBy, sortOrder);
+    let notes = await notesRepository.list(filter, sortBy, sortOrder);
+
+    // Notes inside locked folders stay hidden until the session is unlocked
+    const lockedIds = await this.lockedFolderIds();
+    if (lockedIds.size) {
+      notes = notes.filter((note) => {
+        const memberships = [note.folderId, ...(note.folderIds ?? [])].filter(Boolean) as string[];
+        return !memberships.some((folderId) => lockedIds.has(folderId));
+      });
+    }
     
     // Decrypt encrypted notes if key is available
     const decryptedNotes: Note[] = [];
@@ -215,7 +251,13 @@ export class NoteService {
     }
     
     // For unencrypted notes, use repository search
-    return await notesRepository.search(query);
+    const results = await notesRepository.search(query);
+    const lockedIds = await this.lockedFolderIds();
+    if (!lockedIds.size) return results;
+    return results.filter((note) => {
+      const memberships = [note.folderId, ...(note.folderIds ?? [])].filter(Boolean) as string[];
+      return !memberships.some((folderId) => lockedIds.has(folderId));
+    });
   }
 
   /**
@@ -277,7 +319,15 @@ export class NoteService {
    * Move note to folder
    */
   async moveToFolder(id: string, folderId: string | null): Promise<void> {
-    await this.updateNote(id, { folderId });
+    await this.updateNote(id, { folderId, folderIds: folderId ? [folderId] : [] });
+  }
+
+  /**
+   * Set every folder a note belongs to (UpNote-style multi-folder membership).
+   * folderId mirrors the first entry so single-folder behaviour keeps working.
+   */
+  async setNoteFolders(id: string, folderIds: string[]): Promise<void> {
+    await this.updateNote(id, { folderIds, folderId: folderIds[0] ?? null });
   }
 
   /**
@@ -285,6 +335,13 @@ export class NoteService {
    */
   async updateTags(id: string, tags: string[]): Promise<void> {
     await this.updateNote(id, { tags });
+  }
+
+  /**
+   * Lock or unlock a note (PIN-protected section)
+   */
+  async setNoteLocked(id: string, locked: boolean): Promise<void> {
+    await this.updateNote(id, { locked });
   }
 
   /**
@@ -339,7 +396,8 @@ export class NoteService {
   }
 
   /**
-   * Queue sync operation
+   * Queue sync operation — the engine picks it up shortly after (scheduleSync),
+   * so typing coalesces into one Drive push instead of syncing per keystroke.
    */
   private async queueSync(
     type: 'create' | 'update' | 'delete',
@@ -357,6 +415,7 @@ export class NoteService {
       status: 'pending',
       driveFileId
     });
+    scheduleSync();
   }
 }
 

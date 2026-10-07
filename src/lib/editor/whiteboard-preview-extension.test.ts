@@ -11,7 +11,7 @@ describe('WhiteboardPreviewExtension', () => {
 
     expect(editor.getJSON()).toEqual({
       type: 'doc',
-      content: [{ type: 'whiteboardPreview', attrs: { boardId: 'board-1' } }]
+      content: [{ type: 'whiteboardPreview', attrs: { boardId: 'board-1', width: 100 } }]
     });
     expect(onUpdate).toHaveBeenCalledOnce();
     editor.destroy();

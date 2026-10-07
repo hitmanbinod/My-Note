@@ -52,8 +52,24 @@ export function getSyncInfo(): SyncInfo {
 }
 
 let syncing = false;
+let scheduleTimer: ReturnType<typeof setTimeout> | null = null;
 
-export async function runSync(): Promise<void> {
+/** How long a fully-idle workspace skips Drive checks entirely. */
+const QUIET_PULL_INTERVAL_MS = 5 * 60_000;
+
+/**
+ * Sync shortly after a real change lands (a save queued a sync operation).
+ * Coalesces bursts of typing into one push instead of hitting Drive per edit.
+ */
+export function scheduleSync(delayMs = 2500): void {
+  if (scheduleTimer) clearTimeout(scheduleTimer);
+  scheduleTimer = setTimeout(() => {
+    scheduleTimer = null;
+    void runSync();
+  }, delayMs);
+}
+
+export async function runSync(force = false): Promise<void> {
   if (syncing) return;
 
   const settings = await db.settings.get('singleton');
@@ -62,6 +78,16 @@ export async function runSync(): Promise<void> {
   if (!navigator.onLine) {
     setInfo({ state: 'offline' });
     return;
+  }
+
+  // Nothing queued and we pulled recently — stay quiet instead of touching
+  // Drive (and flashing the spinner) on every timer tick with zero changes.
+  if (!force) {
+    const pendingOps = await db.syncOperations.where('status').equals('pending').count();
+    const pulledRecently =
+      settings.lastFullSyncTime !== null &&
+      Date.now() - settings.lastFullSyncTime < QUIET_PULL_INTERVAL_MS;
+    if (pendingOps === 0 && pulledRecently) return;
   }
 
   syncing = true;

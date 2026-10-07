@@ -1,5 +1,8 @@
 export type Theme = 'light' | 'dark' | 'system';
 export type DefaultView = 'list' | 'grid';
+export type EditorFont = 'system' | 'inter' | 'claude' | 'lora' | 'georgia' | 'times' | 'verdana' | 'arial' | 'courier' | 'mono';
+export type AccentColor = 'blue' | 'sky' | 'indigo' | 'teal' | 'green' | 'yellow' | 'orange' | 'red' | 'pink' | 'violet' | 'magenta' | 'graphite';
+export type PageColor = 'default' | 'paper' | 'white' | 'mist' | 'rose' | 'slate';
 
 export interface AppSettings {
   id: 'singleton';
@@ -30,6 +33,35 @@ export interface AppSettings {
   defaultView: DefaultView;
   sortBy: 'updatedAt' | 'createdAt' | 'title';
   sortOrder: 'asc' | 'desc';
+  editorFont: EditorFont;
+  accentColor: AccentColor;
+  pageColor: PageColor;
+  sidebarCollapsed: boolean;
+  sidebarWidth: number;
+  listWidth: number;
+  editorFontSize: number;
+  editorLineHeight: number;
+  focusMode: boolean;
+  splitView: boolean;
+  splitNoteId: string | null;
+  typewriterMode: boolean;
+  shortcuts: Record<string, string>;
+  toolbarOrder?: string[];
+
+  // Editor behaviour
+  autosaveEnabled: boolean;
+
+  // Lock (4-digit PIN for locked notes + password vault)
+  pinSalt: string | null;
+  pinHash: string | null;
+  vaultPinSalt: string | null;
+  vaultPinHash: string | null;
+
+  // Backup (UpNote-style local backups of notes + notebooks)
+  backupFrequency: 'off' | 'hourly' | 'daily' | 'weekly';
+  backupMaxCount: number;
+  backupDir: string | null;
+  lastBackupAt: number | null;
 
   // Security
   autoLockEnabled: boolean;
@@ -49,4 +81,27 @@ export interface UpdateSettingsInput {
   autoLockMinutes?: number;
   syncInterval?: number;
   encryptionEnabled?: boolean;
+  editorFont?: EditorFont;
+  accentColor?: AccentColor;
+  pageColor?: PageColor;
+  sidebarCollapsed?: boolean;
+  autosaveEnabled?: boolean;
+  sidebarWidth?: number;
+  listWidth?: number;
+  editorFontSize?: number;
+  editorLineHeight?: number;
+  focusMode?: boolean;
+  splitView?: boolean;
+  splitNoteId?: string | null;
+  typewriterMode?: boolean;
+  shortcuts?: Record<string, string>;
+  toolbarOrder?: string[];
+  pinSalt?: string | null;
+  pinHash?: string | null;
+  vaultPinSalt?: string | null;
+  vaultPinHash?: string | null;
+  backupFrequency?: 'off' | 'hourly' | 'daily' | 'weekly';
+  backupMaxCount?: number;
+  backupDir?: string | null;
+  lastBackupAt?: number | null;
 }

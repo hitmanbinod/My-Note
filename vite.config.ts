@@ -12,9 +12,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'robots.txt'],
+      includeAssets: ['favicon.svg', 'favicon-32.png', 'robots.txt'],
       manifest: {
-        name: 'My Notes',
+        name: 'Tipot',
         short_name: 'Notes',
         description: 'A private, local-first writing space that works offline.',
         theme_color: '#635bdb',
@@ -22,7 +22,7 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'icon.svg',
+            src: 'favicon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable'

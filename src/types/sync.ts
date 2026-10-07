@@ -1,3 +1,5 @@
+import type { Note } from './note';
+
 export type SyncOperationType =
   | 'create'
   | 'update'
@@ -40,7 +42,7 @@ export interface DriveFile {
 }
 
 export interface ConflictResolution {
-  localNote: any;
-  remoteNote: any;
+  localNote: Note;
+  remoteNote: Note;
   resolution: 'keep_local' | 'keep_remote' | 'keep_both';
 }

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db/database';
+import { AppSettings } from '@/types/settings';
 import { getValidAccessToken } from '@/lib/auth/google-auth';
 
 const API = 'https://www.googleapis.com/drive/v3';
@@ -90,7 +91,7 @@ export async function ensureAppFolders(): Promise<AppFolderIds> {
     trashFolderDriveId,
     foldersFolderDriveId
   };
-  await db.settings.update('singleton', ids);
+  await db.settings.update('singleton', ids as Partial<AppSettings>);
   return ids;
 }
 

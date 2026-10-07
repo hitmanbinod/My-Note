@@ -15,6 +15,7 @@ import Layout from './components/layout/Layout';
 import { waitForDb, getDbError } from './lib/db/database';
 import { db } from './lib/db/database';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { applyAccent, applyFont, applyPageColor } from './lib/theme/appearance';
 
 const WhiteboardEditorPage = lazy(() => import('./pages/WhiteboardEditorPage'));
 
@@ -104,6 +105,33 @@ function App() {
     }
   }, [theme]);
 
+  // Apply user-selected font and accent color
+  useEffect(() => {
+    if (!settings) return;
+    applyFont(settings.editorFont ?? 'system');
+  }, [settings, settings?.editorFont]);
+
+  useEffect(() => {
+    if (!settings) return;
+    applyAccent(settings.accentColor ?? 'blue', theme);
+    applyPageColor(settings.pageColor ?? 'default', theme);
+    // Keep the native window buttons in step with the theme (Windows overlay).
+    const root = document.documentElement;
+    const styles = getComputedStyle(root);
+    void window.electronAPI?.updateTitlebar?.(
+      styles.getPropertyValue('--app-bg').trim() || '#f6f5f2',
+      styles.getPropertyValue('--muted').trim() || '#6b6f75'
+    );
+  }, [settings, settings?.accentColor, settings?.pageColor, theme]);
+
+  // Editor typography preferences
+  useEffect(() => {
+    if (!settings) return;
+    const root = document.documentElement;
+    root.style.setProperty('--editor-font-size', `${settings.editorFontSize ?? 16}px`);
+    root.style.setProperty('--editor-line-height', String(settings.editorLineHeight ?? 1.8));
+  }, [settings, settings?.editorFontSize, settings?.editorLineHeight]);
+
   // Show database error
   if (dbError) {
     return (
@@ -132,7 +160,7 @@ function App() {
             </button>
             <button
               onClick={() => window.location.reload()}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
+              className="w-full bg-primary-600 hover:bg-primary-700 text-[var(--on-brand)] font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
             >
               Reload
             </button>

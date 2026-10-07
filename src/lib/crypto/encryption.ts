@@ -59,7 +59,7 @@ export async function encryptNote(note: Note, key: CryptoKey, salt: Uint8Array):
   const iv = generateIV();
   
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv as any },
+    { name: 'AES-GCM', iv },
     key,
     data.buffer as ArrayBuffer
   );
@@ -140,7 +140,7 @@ export async function encryptBlob(blob: Blob, key: CryptoKey): Promise<Blob> {
   const iv = generateIV();
   
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv as any },
+    { name: 'AES-GCM', iv },
     key,
     data as ArrayBuffer
   );

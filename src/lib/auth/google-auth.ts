@@ -91,15 +91,18 @@ export async function exchangeCodeForTokens(code: string): Promise<void> {
 
   const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || WEB_REDIRECT_URI;
 
-  // For Web Applications, Google requires client_secret even with PKCE
+  // For Web Applications, Google requires client_secret even with PKCE.
+  // Desktop-type clients must NOT receive one — only send it when configured.
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET || '', // Include client secret
     code: code,
     redirect_uri: redirectUri,
     grant_type: 'authorization_code',
     code_verifier: verifier
   });
+  if (CLIENT_SECRET) {
+    params.set('client_secret', CLIENT_SECRET);
+  }
 
   console.log('Exchanging code for tokens...', {
     client_id: CLIENT_ID,
@@ -179,6 +182,11 @@ export async function refreshAccessToken(): Promise<string> {
     refresh_token: settings.googleRefreshToken,
     grant_type: 'refresh_token'
   });
+  // The token endpoint requires the client_secret on refresh for Web-type
+  // clients — omitting it made every sync fail once the access token expired.
+  if (CLIENT_SECRET) {
+    params.set('client_secret', CLIENT_SECRET);
+  }
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

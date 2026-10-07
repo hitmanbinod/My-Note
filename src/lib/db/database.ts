@@ -5,6 +5,8 @@ import { SyncOperation } from '@/types/sync';
 import { AppSettings } from '@/types/settings';
 import { AttachmentBlob } from '@/types/attachment';
 import { Whiteboard } from '@/types/whiteboard';
+import { VaultEntry } from '@/types/vault';
+import { NoteVersion } from '@/types/version';
 
 export class NotesDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -13,6 +15,8 @@ export class NotesDatabase extends Dexie {
   syncOperations!: Table<SyncOperation, string>;
   settings!: Table<AppSettings, string>;
   whiteboards!: Table<Whiteboard, string>;
+  vault!: Table<VaultEntry, string>;
+  noteVersions!: Table<NoteVersion, string>;
 
   constructor() {
     super('NotesDB');
@@ -32,6 +36,27 @@ export class NotesDatabase extends Dexie {
       syncOperations: 'id, status, timestamp, entityId, [entityType+status]',
       settings: 'id',
       whiteboards: 'id, title, createdAt, updatedAt'
+    });
+
+    this.version(3).stores({
+      notes: 'id, folderId, createdAt, updatedAt, accessedAt, isDeleted, isPinned, isStarred, isArchived, syncStatus, driveFileId, *tags',
+      folders: 'id, parentId, driveFileId, syncStatus',
+      attachmentBlobs: 'id, noteId, driveFileId, cachedAt',
+      syncOperations: 'id, status, timestamp, entityId, [entityType+status]',
+      settings: 'id',
+      whiteboards: 'id, title, createdAt, updatedAt',
+      vault: 'id, title, updatedAt'
+    });
+
+    this.version(4).stores({
+      notes: 'id, folderId, createdAt, updatedAt, accessedAt, isDeleted, isPinned, isStarred, isArchived, syncStatus, driveFileId, *tags',
+      folders: 'id, parentId, driveFileId, syncStatus',
+      attachmentBlobs: 'id, noteId, driveFileId, cachedAt',
+      syncOperations: 'id, status, timestamp, entityId, [entityType+status]',
+      settings: 'id',
+      whiteboards: 'id, title, createdAt, updatedAt',
+      vault: 'id, title, updatedAt',
+      noteVersions: 'id, noteId, createdAt'
     });
   }
 
@@ -59,6 +84,28 @@ export class NotesDatabase extends Dexie {
         defaultView: 'list',
         sortBy: 'updatedAt',
         sortOrder: 'desc',
+        editorFont: 'system',
+        accentColor: 'blue',
+        pageColor: 'default',
+        sidebarCollapsed: false,
+        autosaveEnabled: true,
+        sidebarWidth: 260,
+        listWidth: 304,
+        editorFontSize: 16,
+        editorLineHeight: 1.8,
+        focusMode: false,
+        splitView: false,
+        splitNoteId: null,
+        typewriterMode: false,
+        shortcuts: {},
+        pinSalt: null,
+        vaultPinSalt: null,
+        backupFrequency: 'off',
+        backupMaxCount: 50,
+        backupDir: null,
+        lastBackupAt: null,
+        pinHash: null,
+        vaultPinHash: null,
         autoLockEnabled: false,
         autoLockMinutes: 15,
         lastUnlockedAt: null,

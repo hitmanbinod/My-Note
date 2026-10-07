@@ -1,83 +1,109 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useSync } from '@/hooks/useSync';
-import { signOut } from '@/lib/auth/google-auth';
-import { SyncInfo } from '@/types/sync';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useWindowControlsInset } from '@/hooks/useWindowControlsInset';
+import { useSettings } from '@/hooks/useSettings';
+import { whiteboardsRepository } from '@/lib/db/whiteboards.repository';
+import { AccountMenuButton } from '@/components/layout/AccountMenuButton';
 import SearchBar from './SearchBar';
 
-function Header({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user } = useAuth();
-  const isDriveConnected = Boolean(user?.email);
-  const sync = useSync();
-  const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
+interface HeaderProps {
+  onToggleSidebar: () => void;
+  sidebarCollapsed: boolean;
+}
 
-  const handleLogout = async () => {
+/**
+ * Merged 48px top bar: the empty strip is a window-drag region; the native
+ * window buttons overlay its right edge on Windows. Create / settings /
+ * account live at the top right.
+ */
+function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Precise, DPI-proof reservation for the native window buttons
+  const controlsInset = useWindowControlsInset();
+  const { settings, update } = useSettings();
+
+  // Keep the folder context when creating from inside a notebook, and force a
+  // fresh editor (with a reset stamp) when a blank one is already open.
+  const newNotePath = () => {
+    const folder = location.pathname.match(/^\/notes\/folder\/([^/]+)/);
+    if (folder) return `/notes/folder/${folder[1]}/new`;
+    return '/notes/new';
+  };
+
+  const onNewNote = () => {
+    const target = newNotePath();
+    if (location.pathname === target) navigate(target, { state: { fresh: Date.now() }, replace: true });
+    else navigate(target);
+  };
+
+  const createWhiteboard = async () => {
     try {
-      setLoggingOut(true);
-      await signOut();
-      setMenuOpen(false);
-      navigate('/onboarding', { replace: true });
+      const board = await whiteboardsRepository.create();
+      navigate(`/whiteboards/${board.id}`);
     } catch {
-      setLoggingOut(false);
-      alert('Could not log out. Please try again.');
+      navigate('/whiteboards');
     }
   };
+
   return (
-    <header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-[var(--line)] bg-[color:var(--panel)]/90 px-4 backdrop-blur-xl sm:px-6 lg:px-10">
-      <button onClick={onMenuClick} className="pressable -ml-1 rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--panel-soft)] lg:hidden" aria-label="Open navigation"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="M4 7h16M4 12h16M4 17h16" /></svg></button>
-      <SearchBar />
-      <div className="ml-auto flex items-center gap-2">
-        <SyncBadge connected={isDriveConnected} sync={sync} />
-        <div className="relative">
-          <button onClick={() => setMenuOpen(!menuOpen)} className="pressable flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary-700 ring-1 ring-primary-200 dark:bg-primary-900/40 dark:text-primary-200 dark:ring-primary-800" aria-label="Open account menu">{user?.name?.[0] || user?.email?.[0] || 'M'}</button>
-          {menuOpen && <><button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} aria-label="Close account menu" /><div className="app-panel absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-xl p-1.5 text-sm"><div className="px-3 py-2.5"><p className="font-semibold text-[var(--ink)]">{user?.name || 'Local workspace'}</p><p className="mt-0.5 text-xs text-[var(--muted)]">{user?.email || 'Stored on this device'}</p></div><Link to="/settings" onClick={() => setMenuOpen(false)} className="pressable flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--ink)] hover:bg-[var(--panel-soft)]"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.52-1H3v-4h.08A1.7 1.7 0 0 0 4.6 8.97a1.7 1.7 0 0 0-.34-1.88l-.06-.06L7.03 4.2l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.03 1.52 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" /></svg>Settings</Link><div className="my-1 border-t border-[var(--line)]" /><button onClick={handleLogout} disabled={loggingOut} className="pressable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/30"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4m4-3 4-4-4-4m4 4H9" /></svg>{loggingOut ? 'Logging out…' : 'Log out'}</button></div></>}
+    <header style={{ paddingRight: controlsInset || undefined }} className="app-drag flex h-12 flex-none items-center border-b border-[var(--line)] bg-[var(--app-bg)] px-3 sm:px-4">
+      <div className="topbar-inner flex items-center gap-1.5">
+        {/* Sidebar collapse (desktop) / drawer (mobile) */}
+        <button onClick={onToggleSidebar} className={`pressable flex h-8 w-8 items-center justify-center rounded-md ${sidebarCollapsed ? 'text-[var(--ink)]' : 'text-[var(--muted)]'} hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]`} aria-label="Toggle sidebar" title="Toggle sidebar">
+          <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
+
+        {/* Back / forward history navigation */}
+        <button onClick={() => navigate(-1)} className="pressable hidden h-8 w-8 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)] sm:flex" aria-label="Back" title="Back">
+          <svg className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24"><path d="m14.5 5.5-6.5 6.5 6.5 6.5" /></svg>
+        </button>
+        <button onClick={() => navigate(1)} className="pressable hidden h-8 w-8 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)] sm:flex" aria-label="Forward" title="Forward">
+          <svg className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5" /></svg>
+        </button>
+
+        <div className="mx-2 flex min-w-0 flex-1 justify-start">
+          <SearchBar />
         </div>
+
+        {/* Create + view actions (top right) */}
+        <button onClick={onNewNote} className="pressable flex h-8 w-8 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]" aria-label="New note" title="New note (Ctrl N)">
+          <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.9" d="M12 5v14M5 12h14" /></svg>
+        </button>
+        <button onClick={() => void createWhiteboard()} className="pressable hidden h-8 w-8 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)] sm:flex" aria-label="New whiteboard" title="New whiteboard">
+          <svg className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24"><path d="M4.5 4.5h15v15h-15zM8 15l3-4 2 2 3-4" /></svg>
+        </button>
+
+        {/* Split view toggle */}
+        <button
+          onClick={() => void update({ splitView: !settings?.splitView })}
+          className={`pressable hidden h-8 w-8 items-center justify-center rounded-md lg:flex ${settings?.splitView ? 'bg-[var(--brand-soft)] text-[var(--brand)]' : 'text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]'}`}
+          aria-label="View two notes side by side"
+          title="Split view"
+        >
+          <SplitGlyph />
+        </button>
+
+        <span className="mx-1 h-5 w-px flex-none bg-[var(--line)]" aria-hidden />
+
+        {/* Settings + account */}
+        <Link to="/settings" className="pressable flex h-8 w-8 flex-none items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]" aria-label="Settings" title="Settings">
+          <GearGlyph />
+        </Link>
+        <AccountMenuButton />
       </div>
     </header>
   );
 }
-function SyncBadge({ connected, sync }: { connected: boolean; sync: SyncInfo }) {
-  if (!connected) {
-    return (
-      <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 sm:flex">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Offline ready
-      </span>
-    );
-  }
 
-  const stateStyles: Record<SyncInfo['state'], string> = {
-    idle: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
-    syncing: 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300',
-    offline: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
-    error: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
-    paused: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-  };
-  const dotStyles: Record<SyncInfo['state'], string> = {
-    idle: 'bg-emerald-500',
-    syncing: 'bg-primary-500 animate-pulse',
-    offline: 'bg-amber-500',
-    error: 'bg-red-500',
-    paused: 'bg-gray-400'
-  };
-  const label: Record<SyncInfo['state'], string> = {
-    idle: 'Synced to Drive',
-    syncing: 'Syncing…',
-    offline: 'Offline',
-    error: 'Sync error',
-    paused: 'Sync paused'
-  };
+const SplitGlyph = () => (
+  <svg className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+    <path d="M12 4.5v15" />
+  </svg>
+);
 
-  return (
-    <span
-      className={`hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold sm:flex ${stateStyles[sync.state]}`}
-      title={sync.error ?? undefined}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${dotStyles[sync.state]}`} /> {label[sync.state]}
-    </span>
-  );
-}
+const GearGlyph = () => (
+  <svg className="h-[17px] w-[17px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.52-1H3v-4h.08A1.7 1.7 0 0 0 4.6 8.97a1.7 1.7 0 0 0-.34-1.88l-.06-.06L7.03 4.2l.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.08V3h4v.08a1.7 1.7 0 0 0 1.03 1.52 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" /></svg>
+);
 
 export default Header;

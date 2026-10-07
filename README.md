@@ -1,4 +1,4 @@
-# My Notes - Secure Note-Taking App
+# Tipot — Your private writing space
 
 A production-quality, offline-first Windows desktop app and Progressive Web App for personal note-taking with Google Drive synchronization, rich text editing, and optional end-to-end encryption.
 
@@ -63,7 +63,7 @@ Create the 64-bit Windows installer:
 npm run dist:win
 ```
 
-The installer is written to `release-windows/My-Notes-Setup-1.0.1.exe`. Google Drive sync in the desktop app defaults to `http://localhost:5173/auth/callback`, matching the redirect URI configured above. You can override it with `VITE_GOOGLE_DESKTOP_REDIRECT_URI`, but the value must exactly match an authorized redirect URI in Google Cloud.
+The installer is written to `release-windows/Tipot-Setup-<version>.exe`. Google Drive sync in the desktop app defaults to `http://localhost:5173/auth/callback`, matching the redirect URI configured above. You can override it with `VITE_GOOGLE_DESKTOP_REDIRECT_URI`, but the value must exactly match an authorized redirect URI in Google Cloud.
 
 ## Features
 
@@ -197,7 +197,7 @@ npm run preview
 1. Go to "APIs & Services" → "OAuth consent screen"
 2. Choose "External" user type
 3. Fill in app information:
-   - App name: My Notes
+   - App name: Tipot
    - User support email: your-email@example.com
 4. Add scopes:
    - `https://www.googleapis.com/auth/drive.file`

@@ -67,7 +67,7 @@ export class NotesRepository {
       isDeleted: true,
       deletedAt: Date.now(),
       syncStatus: 'pending'
-    } as any);
+    });
   }
 
   async permanentDelete(id: string): Promise<void> {
@@ -79,7 +79,7 @@ export class NotesRepository {
       isDeleted: false,
       deletedAt: null,
       syncStatus: 'pending'
-    } as any);
+    });
   }
 
   async list(
@@ -97,8 +97,19 @@ export class NotesRepository {
       collection = collection.and(note => !(note as Note).isDeleted);
     }
 
+    // Locked notes stay out of every normal view; only the locked view asks for them
+    if (filter?.isLocked !== undefined) {
+      collection = collection.and(note => Boolean((note as Note).locked) === filter.isLocked);
+    } else {
+      collection = collection.and(note => !(note as Note).locked);
+    }
+
     if (filter?.folderId !== undefined) {
-      collection = collection.and(note => (note as Note).folderId === filter.folderId);
+      // A note can belong to multiple folders (folderId mirrors the first entry)
+      collection = collection.and(note =>
+        (note as Note).folderId === filter.folderId ||
+        (Array.isArray((note as Note).folderIds) && (note as Note).folderIds!.includes(filter.folderId!))
+      );
     }
 
     if (filter?.isPinned !== undefined) {
@@ -118,22 +129,17 @@ export class NotesRepository {
     }
 
     // Sort
-    let notes = await collection.toArray() as Note[];
+    const notes = await collection.toArray() as Note[];
     
     notes.sort((a, b) => {
-      let aVal: any = a[sortBy];
-      let bVal: any = b[sortBy];
-
       if (sortBy === 'title') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
+        const aVal = a.title.toLowerCase();
+        const bVal = b.title.toLowerCase();
+        return sortOrder === 'asc' ? (aVal > bVal ? 1 : aVal < bVal ? -1 : 0) : (aVal < bVal ? 1 : aVal > bVal ? -1 : 0);
       }
-
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-      } else {
-        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-      }
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
     });
 
     return notes;

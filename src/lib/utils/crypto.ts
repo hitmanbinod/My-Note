@@ -39,6 +39,6 @@ export function generateSalt(): Uint8Array {
 /**
  * Generate random IV for encryption
  */
-export function generateIV(): Uint8Array {
+export function generateIV(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(12));
 }

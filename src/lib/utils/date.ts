@@ -23,6 +23,22 @@ export function formatRelativeTime(timestamp: number): string {
 }
 
 /**
+ * Compact timestamp for note lists: "6/21 20:45", or "6/21/24 20:45" for other years.
+ */
+export function formatNoteTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${month}/${day} ${time}`;
+  }
+  return `${month}/${day}/${String(date.getFullYear()).slice(2)} ${time}`;
+}
+
+/**
  * Format timestamp to readable date
  */
 export function formatDate(timestamp: number, includeTime = false): string {

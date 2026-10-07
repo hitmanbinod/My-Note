@@ -1,6 +1,7 @@
 import { Folder, CreateFolderInput, UpdateFolderInput } from '@/types';
 import { foldersRepository } from '@/lib/db/folders.repository';
 import { db } from '@/lib/db/database';
+import { scheduleSync } from '@/lib/sync/sync-service';
 
 export class FolderService {
   /**
@@ -54,7 +55,7 @@ export class FolderService {
   }
 
   /**
-   * Queue sync operation
+   * Queue sync operation — scheduleSync coalesces queued work into one push.
    */
   private async queueSync(
     type: 'create' | 'update' | 'delete',
@@ -72,6 +73,7 @@ export class FolderService {
       status: 'pending',
       driveFileId
     });
+    scheduleSync();
   }
 }
 

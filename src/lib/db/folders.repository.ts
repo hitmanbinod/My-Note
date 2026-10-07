@@ -42,11 +42,11 @@ export class FoldersRepository {
       // Move notes to no folder using JS-level filter
       const allNotes = await db.notes.toArray();
       for (const note of allNotes) {
-        if ((note as any).folderId === id) {
+        if (note.folderId === id) {
           await db.notes.update(note.id, {
             folderId: null,
             syncStatus: 'pending'
-          } as any);
+          });
         }
       }
     });

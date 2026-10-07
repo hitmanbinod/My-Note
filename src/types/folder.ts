@@ -8,6 +8,8 @@ export interface Folder {
   updatedAt: number;
   color: string | null;
   icon: string | null;
+  /** Contents require the PIN; hidden from lists/search while locked. */
+  locked?: boolean;
   driveFileId: string | null;
   syncStatus: SyncStatus;
 }
@@ -17,6 +19,7 @@ export interface CreateFolderInput {
   parentId?: string | null;
   color?: string | null;
   icon?: string | null;
+  locked?: boolean;
 }
 
 export interface UpdateFolderInput {
@@ -24,4 +27,5 @@ export interface UpdateFolderInput {
   parentId?: string | null;
   color?: string | null;
   icon?: string | null;
+  locked?: boolean;
 }
