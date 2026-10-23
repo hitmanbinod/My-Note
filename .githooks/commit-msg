@@ -1,0 +1,9 @@
+#!/bin/sh
+subject=$(head -n 1 "$1")
+case "$subject" in
+  Merge\ *|Revert\ *) exit 0 ;;
+esac
+echo "$subject" | grep -Eq '^(feat|fix|refactor|perf|style|docs|test|build|ci|chore|revert|wip)(\([a-z0-9._/-]+\))?!?: .{3,}$' || {
+  echo "commit-msg: use Conventional Commits, e.g. 'fix(editor): remove automatic quote marks'"
+  exit 1
+}

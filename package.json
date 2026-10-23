@@ -16,7 +16,10 @@
     "desktop": "npm run build && electron .",
     "electron": "npm run desktop",
     "dist:win": "npm run build && electron-builder --win --x64",
-    "release:win": "npm run build && electron-builder --win --x64 --publish always"
+    "release:win": "npm run build && electron-builder --win --x64 --publish always",
+    "verify": "npm run lint && npx tsc --noEmit && npm test",
+    "verify:full": "npm run verify && npm run build",
+    "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks')}catch(e){}\""
   },
   "devDependencies": {
     "@excalidraw/excalidraw": "^0.18.1",

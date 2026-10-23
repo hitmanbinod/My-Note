@@ -1,0 +1,11 @@
+#!/bin/sh
+# WIP checkpoints on feature branches may skip checks: AI_WIP=1 git commit -m "wip: ..."
+if [ "$AI_WIP" = "1" ]; then echo "pre-commit: WIP checkpoint, checks skipped"; exit 0; fi
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" = "main" ] && [ "$ALLOW_MAIN" != "1" ]; then
+  echo "pre-commit: do not commit directly to main. Create a branch (see ai/02)."
+  exit 1
+fi
+echo "pre-commit: lint + type-check"
+npm run lint --silent || exit 1
+npx tsc --noEmit || exit 1
