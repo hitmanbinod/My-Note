@@ -1,5 +1,7 @@
 # Tipot: Project Guide
 
+Rules: AGENTS.md · Deep guides: ai/README.md · Decisions: ai/DECISIONS.md
+
 Updated: 2026-10-07 · App version: 1.1.0 · Platform: Windows only (Electron 32)
 
 **How to use this file:** read sections 1-4 first. Then read only the section(s) a task needs:
@@ -203,19 +205,7 @@ Update when: any of the above changes.
 **Known issues**
 - CUA-driven browser automation clicks need a 1.1 device-pixel correction on some setups (test-harness only).
 
-**Decisions** (max 10 one-liners: choice, because reason)
-- Image width is stored as a percentage of content width, because panes resize.
-- Pane widths are CSS variables written during drag, because React re-renders made dragging janky.
-- `--on-brand` is computed from contrast, because fixed white text failed on light accents.
-- Image `allowBase64: true`, because the file-picker path and pastes embed data URLs by design.
-- Corner resize commits `align: 'left'`, because the dragged-from corner must stay anchored.
-- Left/right image alignment floats by default, because text wrap is the expected UpNote behavior.
-- Settings/account live in the top bar (user preference over the sidebar-footer variant).
-- New-note top-bar icon is a plain icon (no dropdown); import lives in Settings → Backup — user decision.
-- User-data folder is pinned to the legacy folder "My Notes" via brand.json, because changing productName would otherwise point the app at an empty data folder.
-- appId, DB names, storage keys, vault inputs, Drive folder lookup ("My Notes" remote folder) and backup format identifiers keep their original values on purpose.
-- Name is "Tipot" (not "Tiptap", which is the editor library). Icon is the cairn-layers mark.
-- Quote blocks enforce a trailing empty paragraph via an appendTransaction plugin, so clicking below always exits.
+**Decisions:** moved to ai/DECISIONS.md (append-only log).
 
 ## 11. Recent major changes (max 5, newest first)
 
