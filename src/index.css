@@ -1,46 +1,49 @@
-/* Voice memo — minimal pill player with animated playback bars */
-.voice-memo { @apply my-3; }
-.voice-row {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 7px 12px; border-radius: 999px;
+/* Voice memo — single minimal pill (guide Task 2). Progress = color sweep
+   via a --p CSS var written from a rAF loop; no per-frame React renders. */
+.voice-memo-node { margin: 12px 0; }
+.vm-pill {
+  display: flex; align-items: center; gap: 10px;
+  height: 44px; width: 100%; max-width: 380px;
+  padding: 6px 14px 6px 6px; border-radius: 22px;
   background: var(--panel-soft); border: 1px solid var(--line);
 }
-.voice-play {
-  flex: none; width: 30px; height: 30px; border-radius: 999px; border: 0; cursor: pointer;
+.vm-play {
+  flex: none; width: 32px; height: 32px; border-radius: 999px; border: 0; cursor: pointer;
   background: var(--brand); color: var(--on-brand);
   display: flex; align-items: center; justify-content: center;
-  transition: transform 120ms ease, filter 120ms ease;
 }
-.voice-play:hover { transform: scale(1.06); }
-.voice-play:active { transform: scale(.94); }
-.voice-wave { position: relative; flex: 1; height: 20px; min-width: 80px; cursor: pointer; display: flex; align-items: center; gap: 2px; overflow: hidden; }
-.voice-wave-track,
-.voice-wave-fill { position: absolute; inset: 0; display: flex; align-items: center; gap: 2px; overflow: hidden; }
-.voice-wave-track span { flex: 1; min-width: 1.5px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 45%, transparent); }
-.voice-wave-fill { width: 0%; }
-.voice-wave-fill span { flex: 1; min-width: 1.5px; border-radius: 2px; background: var(--brand); }
-/* Bars bounce while the audio plays */
-.voice-row.is-playing .voice-wave-track span,
-.voice-row.is-playing .voice-wave-fill span { animation: voice-bounce 900ms ease-in-out infinite; }
-.voice-row.is-playing .voice-wave span:nth-child(2n) { animation-delay: 130ms; }
-.voice-row.is-playing .voice-wave span:nth-child(3n) { animation-delay: 260ms; }
-.voice-row.is-playing .voice-wave span:nth-child(5n) { animation-delay: 420ms; }
-@keyframes voice-bounce { 0%, 100% { transform: scaleY(.5); } 50% { transform: scaleY(1.2); } }
-.voice-time { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: center; }
-.voice-delete {
-  flex: none; border: 0; background: transparent; cursor: pointer; color: var(--muted);
-  padding: 4px; border-radius: 7px; opacity: 0; transition: opacity 120ms ease;
+.vm-icon-pause { display: none; }
+.vm-pill.is-playing .vm-icon-play { display: none; }
+.vm-pill.is-playing .vm-icon-pause { display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  .vm-icon-play, .vm-icon-pause { transition: opacity 120ms ease; }
 }
-.voice-memo:hover .voice-delete { opacity: 1; }
-.voice-delete:hover { background: var(--panel); color: #dc2626; }
-.voice-transcript {
-  margin: 6px 12px 2px; padding: 7px 10px; border-radius: 10px;
+.vm-wave { position: relative; flex: 1; height: 24px; cursor: pointer; outline: none; }
+.vm-wave:focus-visible { border-radius: 4px; box-shadow: 0 0 0 2px var(--brand); }
+.vm-wave__layer { position: absolute; inset: 0; display: flex; align-items: center; gap: 2px; }
+.vm-wave__bar { flex: 1; max-width: 3px; min-width: 2px; border-radius: 2px; background: currentColor; }
+.vm-wave__base { color: color-mix(in oklch, var(--ink) 22%, transparent); }
+.vm-wave__fill { color: var(--brand); clip-path: inset(0 calc((1 - var(--p, 0)) * 100%) 0 0); }
+.vm-time {
+  flex: none; min-width: 34px; text-align: right;
+  font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted);
+}
+.vm-pill.is-playing .vm-time { color: var(--ink); }
+.vm-delete {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--muted); cursor: pointer; opacity: 0; transition: opacity 120ms ease;
+}
+.vm-pill:hover .vm-delete, .vm-delete:focus-visible { opacity: 1; }
+.vm-delete:hover { color: #dc2626; background: var(--panel); }
+.vm-transcript {
+  margin: 6px 0 2px; padding: 7px 10px; border-radius: 10px;
   background: var(--panel); border: 1px dashed var(--line);
-  display: flex; align-items: flex-start; gap: 8px;
+  display: flex; align-items: flex-start; gap: 8px; max-width: 380px;
 }
-.voice-transcript-text { flex: 1; font-size: 12px; line-height: 1.5; color: var(--ink); }
-.voice-transcript-copy { flex: none; border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 11px; padding: 2px 4px; border-radius: 5px; }
-.voice-transcript-copy:hover { color: var(--ink); background: var(--panel-soft); }
+.vm-transcript-text { flex: 1; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.vm-transcript-copy { flex: none; border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 11px; padding: 2px 4px; border-radius: 5px; }
+.vm-transcript-copy:hover { color: var(--ink); background: var(--panel-soft); }
 
 @tailwind base;
 @tailwind components;
@@ -50,6 +53,8 @@
    --p-* shade triplets and --brand are overwritten at runtime by the accent picker. */
 :root {
   color-scheme: light;
+  /* Brand identity tile — intentionally fixed, does not follow the accent */
+  --brand-logo: #3761e1;
   --app-bg: #f4f3ef;
   --panel: #faf9f6;
   --panel-soft: #edece6;
@@ -516,23 +521,37 @@ body.col-resizing, body.col-resizing * { transition: none !important; }
 .video-embed { position: relative; width: 100%; max-width: 760px; aspect-ratio: 16 / 9; margin: 12px 0; border-radius: 8px; overflow: hidden; background: #000; }
 .video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-/* Editor toolbar dropdown menus */
+/* Editor toolbar dropdown menus — shared by every menu/popover (guide Task 4) */
 .toolbar-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
-  background: var(--surface-3, var(--panel)); border: 1px solid var(--line); border-radius: 8px;
-  box-shadow: var(--shadow-pop); padding: 4px; min-width: 130px;
-  max-width: calc(100vw - 16px);
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px;
+  box-shadow: var(--shadow-pop); padding: 4px;
+  width: max-content; min-width: 208px; max-width: 288px;
+  max-height: min(70vh, 420px); overflow-y: auto;
+  animation: menu-in 120ms ease;
+  transform-origin: top left;
 }
+@keyframes menu-in { from { opacity: 0; transform: scale(.98); } }
 /* Right-anchored variant (custom rule, beats the base left: 0) */
-.toolbar-menu.menu-right { left: auto; right: 0; }
+.toolbar-menu.menu-right { left: auto; right: 0; transform-origin: top right; }
 .toolbar-menu button {
-  display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: transparent;
-  color: var(--ink); cursor: pointer; font-size: 13px; padding: 6px 9px; border-radius: 6px; text-align: left;
+  display: flex; width: 100%; align-items: center; gap: 10px; border: 0; background: transparent;
+  height: 32px; padding: 0 10px; border-radius: 6px; text-align: left;
+  color: var(--ink); cursor: pointer; font-size: 13px; font-weight: 500;
+  white-space: nowrap;
 }
-.toolbar-menu button:hover { background: var(--panel-soft); }
+.toolbar-menu button > span { overflow: hidden; text-overflow: ellipsis; }
+.toolbar-menu button > svg { flex: none; width: 16px; height: 16px; color: var(--muted); }
+.toolbar-menu button:hover,
+.toolbar-menu button:focus-visible { background: var(--panel-soft); outline: none; }
 .toolbar-menu button.is-active { color: var(--brand); background: var(--brand-soft); }
-.toolbar-menu .menu-separator { margin: 4px 2px; border-top: 1px solid var(--line); }
-.toolbar-menu.drop-up { top: auto; bottom: calc(100% + 6px); }
+.toolbar-menu button[disabled],
+.toolbar-menu button[aria-disabled='true'] { opacity: .45; pointer-events: none; }
+.toolbar-menu .menu-separator { margin: 4px 6px; border-top: 1px solid var(--line); }
+.toolbar-menu.drop-up { top: auto; bottom: calc(100% + 6px); transform-origin: bottom left; }
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-menu { animation: none; }
+}
 
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }

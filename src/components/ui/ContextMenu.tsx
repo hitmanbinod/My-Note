@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { KeyboardEvent, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface ContextMenuItem {
@@ -9,6 +9,9 @@ export interface ContextMenuItem {
   active?: boolean;
   /** Small color circle rendered before the label (color pickers). */
   dot?: string;
+  /** Leading 16px icon; icon-less items keep the same left space so labels align. */
+  icon?: React.ReactNode;
+  disabled?: boolean;
   run?: () => void;
   separator?: boolean;
   /** Drill-down submenu (editor-style Insert Column ▸). */
@@ -22,9 +25,12 @@ export interface ContextMenuItem {
  * the window, closed by any click / Escape / scroll / resize. mousedown is
  * prevented so invoking an item never clears the editor's selection.
  * Items with `children` drill down in place; "Back" returns to the root.
+ * Keyboard: Up/Down/Home/End move, Enter activates, Esc closes (focus returns
+ * to the trigger).
  */
 export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: ContextMenuItem[]; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [pos, setPos] = useState({ left: x, top: y });
   const [subItems, setSubItems] = useState<{ parent: string; items: ContextMenuItem[] } | null>(null);
 
@@ -39,8 +45,14 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
   }, [x, y]);
 
   useLayoutEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    returnFocusRef.current = previous;
+    ref.current?.focus();
+  }, []);
+
+  useLayoutEffect(() => {
     const close = () => onClose();
-    const onKey = (event: KeyboardEvent) => {
+    const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('click', close);
@@ -52,14 +64,38 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
       window.removeEventListener('resize', close);
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('keydown', onKey);
+      returnFocusRef.current?.focus?.();
     };
   }, [onClose]);
 
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const buttons = Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') ?? []);
+    if (!buttons.length) return;
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      buttons[(index + 1 + buttons.length) % buttons.length]?.focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      buttons[(index - 1 + buttons.length) % buttons.length]?.focus();
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      buttons[0]?.focus();
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      buttons[buttons.length - 1]?.focus();
+    }
+  };
+
   const shown = subItems ? subItems.items : items;
+  const hasLeadingVisuals = shown.some((item) => item.icon || item.dot || item.swatches);
+
   return createPortal(
     <div
       ref={ref}
-      className="toolbar-menu"
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+      className="toolbar-menu outline-none"
       style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 90 }}
       onClick={(event) => event.stopPropagation()}
       onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}
@@ -92,7 +128,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
                     swatch.run();
                     onClose();
                   }}
-                  className="h-4.5 w-4.5 h-[18px] w-[18px] rounded-full border border-black/20 transition-transform hover:scale-110"
+                  className="h-4 w-4 rounded-full border border-black/20 transition-transform hover:scale-110"
                   style={{ background: swatch.color }}
                 />
               ))}
@@ -102,6 +138,8 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
           <button
             key={`${item.label}-${index}`}
             type="button"
+            disabled={item.disabled}
+            aria-disabled={item.disabled || undefined}
             className={`${item.active ? 'is-active ' : ''}${item.danger ? 'text-red-600 dark:text-red-400' : ''}`}
             onMouseDown={(event) => { if (event.button === 0) event.preventDefault(); }}
             onClick={(event) => {
@@ -114,10 +152,15 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
               onClose();
             }}
           >
+            {hasLeadingVisuals && (
+              <span className="flex h-4 w-4 flex-none items-center justify-center">
+                {item.icon}
+                {item.dot && <span className="h-3 w-3 rounded-full border border-black/15" style={{ background: item.dot }} />}
+              </span>
+            )}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            {item.dot && <span className="mr-1.5 h-3 w-3 flex-none rounded-full border border-black/15" style={{ background: item.dot }} />}
             {item.shortcut && <span className="flex-none text-[11px] tabular-nums text-[var(--muted)]">{item.shortcut}</span>}
-            {item.children?.length && <span className="flex-none text-[10px] text-[var(--muted)]">›</span>}
+            {item.children?.length ? <span className="flex-none text-[10px] text-[var(--muted)]">›</span> : null}
           </button>
         )
       )}
@@ -125,4 +168,3 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     document.body
   );
 }
-

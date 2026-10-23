@@ -19,7 +19,7 @@ Update when: scope, goals or platforms change.
 | Area | What exists | State |
 |---|---|---|
 | Notes | CRUD, autosave, notebooks (folders), tags, pin, star, trash/archive, search, sort menu, instant warm opens + per-note scroll restore | done |
-| Editor | TipTap v2 rich text, slash menu, tables, code blocks, paste pipeline, resizable images with float/wrap + alt-text popover, quote blocks with ·· menu + auto quote-mark stripping + trailing paragraph, highlight paint mode (latch + cursor + drag-apply), minimal voice-memo pill player with animated playback | done |
+| Editor | TipTap v2 rich text, slash menu, tables, code blocks, paste pipeline, resizable images with float/wrap + alt-text popover, quote blocks (upright, no quote marks, ·· menu, trailing paragraph), highlight paint mode (latch + cursor + drag-apply), voice-memo pill player (48-bar dual-layer waveform, real peaks, rAF progress) | done |
 | Embeds | Whiteboard (Excalidraw) previews inside notes; images and boards get a ·· options button; images resize via an invisible corner drag zone, boards via a circular grip | done |
 | Whiteboards | Standalone boards; back button returns to the originating note (deep links fall back to the list) | done |
 | Reader mode | Pen / highlighter (real-time drag) / text / eraser annotations, highlights (CSS Highlight API), sticky notes | done |
@@ -151,7 +151,8 @@ Update when: a design rule changes.
 - Mark colors (quote backgrounds, reader highlight/pen/sticky, editor highlight paint) come from one palette: src/lib/theme/palette.ts + --mark-* CSS vars — change colors there only.
 - Quote blocks: a trailing empty paragraph is enforced by an appendTransaction plugin, and edge-typed quotation marks are stripped live — clicking below a quote always exits it.
 - Editor word count is debounced (400ms) — computing it per keystroke lagged long notes.
-- The top bar reserves ~136px on the right in Electron (native window buttons overlay); don't place interactive elements there.
+- The top bar reserves the native window-buttons area via useWindowControlsInset (Window Controls Overlay API) — don't place interactive elements there.
+- Menus share .toolbar-menu CSS (min 208px, items 32px nowrap, keyboard nav in ContextMenu + toolbar portal) — style new menus only through that block, and never add trailing "…" to labels.
 - The password-manager reveal in NotesPage requires typing the PIN in search AND pressing Enter; success also unlocks the vault session (no second prompt).
 - Note scroll positions live in noteScrollMemory (NoteEditor.tsx), saved by onScroll and restored with frame retries — the unmount cleanup must not write (it fires mid-transition and would overwrite with 0).
 - An untouched empty whiteboard is deleted on unmount (no shell litter) — creating a board via automation must

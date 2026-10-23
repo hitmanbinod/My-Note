@@ -77,11 +77,16 @@ function Sidebar({ isOpen, onClose, collapsed, savedWidth }: { isOpen: boolean; 
       <aside ref={asideRef} className={`sidebar-pane fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--panel)] px-4 pb-4 pt-5 transition-[transform,width] duration-200 [transition-timing-function:var(--ease-out)] lg:static lg:w-[var(--sidebar-w,260px)] lg:translate-x-0 ${rail ? 'lg:px-2.5' : 'lg:px-4'} ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'lg:hidden' : ''}`}>
         {/* Laid out at natural width and clipped while resizing — text never squishes mid-drag */}
         <div className={`no-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${rail ? '' : 'lg:min-w-[228px]'}`}>
-        <div className={`mb-5 flex items-center px-1 ${rail ? 'lg:justify-center' : ''}`}>
-          <Link to="/notes" onClick={onClose} className="pressable flex items-center gap-2.5" title="Tipot">
-            {/* Flat logo tile — accent only on the mark inside (guide Task 4) */}
-            <div className="flex h-7 w-7 flex-none items-center justify-center rounded-md bg-[var(--brand-soft)]"><BrandMark size={18} className="text-[var(--brand-text)]" /></div>
-            <span className={`text-sm font-semibold tracking-tight text-[var(--ink)] ${rail ? 'lg:hidden' : ''}`}>Tipot</span>
+        {/* Brand header — 48px row, solid logo tile, wordmark (guide Task 3) */}
+        <div className={`mb-2 flex items-center ${rail ? 'lg:justify-center' : ''}`}>
+          <Link
+            to="/notes"
+            onClick={onClose}
+            title="Tipot"
+            className={`pressable flex items-center gap-2.5 rounded-lg hover:bg-[var(--panel-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand)] ${rail ? 'lg:h-7 lg:w-7 lg:justify-center' : 'h-12 w-full px-2'}`}
+          >
+            <span className="flex h-6 w-6 flex-none items-center justify-center rounded-md bg-[var(--brand-logo)]"><BrandMark size={16} className="text-white" /></span>
+            <span className={`text-[15px] font-semibold leading-none tracking-[-0.01em] text-[var(--ink)] ${rail ? 'lg:hidden' : ''}`}>Tipot</span>
           </Link>
           <button onClick={onClose} className="pressable ml-auto rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--panel-soft)] lg:hidden" aria-label="Close navigation"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="1.8" d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
@@ -97,9 +102,9 @@ function Sidebar({ isOpen, onClose, collapsed, savedWidth }: { isOpen: boolean; 
             <NavItem to="/notes/trash" label="Trash" count={trashed.length} active={location.pathname === '/notes/trash'} onClick={onClose} rail={rail} icon={<TrashIcon />} />
           </div>
 
-          <div className={`mb-2 mt-7 flex items-center justify-between px-3 ${rail ? 'lg:hidden' : ''}`}>
+          <div className={`group mb-2 mt-7 flex items-center justify-between px-3 ${rail ? 'lg:hidden' : ''}`}>
             <p className="eyebrow text-[var(--muted)]">Notebooks</p>
-            <button className="pressable -mr-1 rounded-md p-1 text-[var(--muted)] transition-colors hover:bg-[var(--panel-soft)] hover:text-[var(--ink)]" onClick={openCreateDialog} aria-label="Create notebook"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg></button>
+            <button className="pressable -mr-1 rounded-md p-1 text-[var(--muted)] opacity-0 transition-opacity hover:bg-[var(--panel-soft)] hover:text-[var(--ink)] focus-visible:opacity-100 group-hover:opacity-100" onClick={openCreateDialog} aria-label="Create notebook"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg></button>
           </div>
           <div className="space-y-1">
             {folders.map((folder) => (
@@ -107,7 +112,7 @@ function Sidebar({ isOpen, onClose, collapsed, savedWidth }: { isOpen: boolean; 
                 <NavItem to={`/notes/folder/${folder.id}`} label={folder.name} active={location.pathname === `/notes/folder/${folder.id}`} onClick={onClose} rail={rail} icon={folder.icon ? <img src={folder.icon} alt="" className="h-[18px] w-[18px] flex-none rounded-[5px] object-cover" /> : <FolderIcon color={folder.color || '#776df1'} />} trailing={folder.locked ? <LockGlyph /> : undefined} />
               </div>
             ))}
-            {!folders.length && <button onClick={openCreateDialog} className={`pressable mx-2 flex w-[calc(100%-1rem)] items-center gap-2 rounded-lg border border-dashed border-[var(--line)] px-3 py-2 text-left text-xs text-[var(--muted)] hover:border-primary-300 hover:text-primary-600 ${rail ? 'lg:hidden' : ''}`}><FolderIcon color="currentColor" /> Organize with a notebook</button>}
+            {!folders.length && <button onClick={openCreateDialog} className={`pressable mx-2 flex h-8 w-[calc(100%-1rem)] items-center gap-2 rounded-md px-3 text-left text-xs text-[var(--muted)] hover:bg-[var(--panel-soft)] hover:text-[var(--ink)] ${rail ? 'lg:hidden' : ''}`}><FolderIcon color="currentColor" /> New notebook</button>}
           </div>
           {/* Rail mode: minimal + to add a notebook (guide Task 4) */}
           {rail && (

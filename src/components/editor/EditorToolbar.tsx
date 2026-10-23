@@ -206,22 +206,33 @@ const EditorToolbar = memo(function EditorToolbar({ editor }: EditorToolbarProps
         stream.getTracks().forEach((track) => track.stop());
         try { recognition?.stop(); } catch { /* already stopped */ }
         const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-        const reader = new FileReader();
-        reader.onload = () => {
-          setRecordSeconds((elapsed) => {
+        const duration = recordSeconds;
+        // data URL + real waveform peaks in parallel; the memo stores both
+        void Promise.all([
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(blob);
+          }),
+          import('@/lib/editor/voice-peaks').then(({ computePeaksFromBlob }) => computePeaksFromBlob(blob)).catch(() => null)
+        ]).then(([dataUrl, peaks]) => {
+          if (!dataUrl) {
+            alert('Could not save the recording.');
+            return;
+          }
+          setRecordSeconds(() => {
             editor
               .chain()
               .focus()
               .insertContent({
                 type: 'voiceMemo',
-                attrs: { dataUrl: reader.result, duration: elapsed, createdAt: Date.now(), transcript: transcriptText || null }
+                attrs: { dataUrl, duration, createdAt: Date.now(), transcript: transcriptText || null, peaks }
               })
               .run();
             return 0;
           });
-        };
-        reader.onerror = () => alert('Could not save the recording.');
-        reader.readAsDataURL(blob);
+        });
         setRecorder(null);
       };
       mediaRecorder.start();
@@ -462,7 +473,17 @@ const EditorToolbar = memo(function EditorToolbar({ editor }: EditorToolbarProps
     const nearRight = menuPos.left > window.innerWidth - 280;
     return createPortal(
       <div
-        className="toolbar-menu"
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+          if (!buttons.length) return;
+          const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+          if (event.key === 'ArrowDown') { event.preventDefault(); buttons[(index + 1 + buttons.length) % buttons.length]?.focus(); }
+          else if (event.key === 'ArrowUp') { event.preventDefault(); buttons[(index - 1 + buttons.length) % buttons.length]?.focus(); }
+          else if (event.key === 'Home') { event.preventDefault(); buttons[0]?.focus(); }
+          else if (event.key === 'End') { event.preventDefault(); buttons[buttons.length - 1]?.focus(); }
+        }}
+        className="toolbar-menu outline-none"
         style={{
           position: 'fixed',
           top: 'auto',

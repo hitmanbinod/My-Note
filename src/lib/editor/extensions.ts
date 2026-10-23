@@ -21,6 +21,7 @@ import { Node, Extension, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ResizableImageView } from '@/components/editor/ResizableImageView';
 import { QuoteNodeView } from '@/components/editor/QuoteNodeView';
+import { VoiceMemoView } from '@/components/editor/VoiceMemoView';
 import { Plugin, NodeSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
 import type { Node as PMNode } from '@tiptap/pm/model';
@@ -176,6 +177,11 @@ const ResizableImageWithSelection = ResizableImage.extend({
  * as a base64 data URL, so it travels with the note file (and Drive sync).
  * A live speech-recognition transcript (when available) travels with it.
  */
+/**
+ * Voice memo node — recorded audio embedded as a base64 data URL so it
+ * travels with the note (and Drive sync). Optional real-waveform `peaks`
+ * (48 ints 0-100); the React view computes them lazily for old memos.
+ */
 const VoiceMemo = Node.create({
   name: 'voiceMemo',
   group: 'block',
@@ -187,7 +193,8 @@ const VoiceMemo = Node.create({
       dataUrl: { default: null },
       duration: { default: 0 },
       createdAt: { default: null },
-      transcript: { default: null }
+      transcript: { default: null },
+      peaks: { default: null }
     };
   },
 
@@ -200,128 +207,7 @@ const VoiceMemo = Node.create({
   },
 
   addNodeView() {
-    return ({ node, editor, getPos }) => {
-      const wrap = document.createElement('div');
-      wrap.className = 'voice-memo';
-
-      const row = document.createElement('div');
-      row.className = 'voice-row';
-
-      const play = document.createElement('button');
-      play.className = 'voice-play';
-      play.type = 'button';
-      play.title = 'Play voice memo';
-      play.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/></svg>';
-
-      const wave = document.createElement('div');
-      wave.className = 'voice-wave';
-      wave.title = 'Click to seek';
-      const track = document.createElement('div');
-      track.className = 'voice-wave-track';
-      const fill = document.createElement('div');
-      fill.className = 'voice-wave-fill';
-      const heights = [3, 6, 9, 5, 11, 7, 4, 9, 13, 6, 3, 8, 11, 5, 9, 4, 7, 12, 6, 3, 9, 5, 8, 4];
-      for (const height of heights) {
-        const bar = document.createElement('span');
-        bar.style.height = `${height}px`;
-        track.appendChild(bar);
-        const fillBar = document.createElement('span');
-        fillBar.style.height = `${height}px`;
-        fill.appendChild(fillBar);
-      }
-      wave.appendChild(track);
-      wave.appendChild(fill);
-
-      const time = document.createElement('span');
-      time.className = 'voice-time';
-      time.textContent = '0:00';
-
-      const remove = document.createElement('button');
-      remove.className = 'voice-delete';
-      remove.type = 'button';
-      remove.title = 'Delete voice memo';
-      remove.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4.5 7h15M9 7V4.5h6V7m2.75 0-.6 11.05a2 2 0 0 1-2 1.9h-6.3a2 2 0 0 1-2-1.9L6.25 7"/></svg>';
-      remove.addEventListener('click', () => {
-        if (typeof getPos === 'function') {
-          editor.view.dispatch(editor.view.state.tr.delete(getPos(), getPos() + 1));
-        }
-      });
-
-      const audio = document.createElement('audio');
-      audio.src = node.attrs.dataUrl as string;
-      audio.preload = 'metadata';
-      audio.style.display = 'none';
-
-      const playIcon = play.children[0] as HTMLElement;
-      const pauseIcon = play.children[1] as HTMLElement;
-      const fmt = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
-
-      play.addEventListener('click', () => {
-        if (audio.paused) void audio.play();
-        else audio.pause();
-      });
-      audio.addEventListener('play', () => { playIcon.style.display = 'none'; pauseIcon.style.display = 'block'; wrap.classList.add('is-playing'); });
-      audio.addEventListener('pause', () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; wrap.classList.remove('is-playing'); });
-      audio.addEventListener('ended', () => { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; wrap.classList.remove('is-playing'); });
-      audio.addEventListener('loadedmetadata', () => { time.textContent = fmt(audio.duration || 0); });
-      audio.addEventListener('timeupdate', () => {
-        time.textContent = fmt(audio.currentTime);
-        const ratio = audio.duration ? audio.currentTime / audio.duration : 0;
-        fill.style.width = `${Math.min(100, ratio * 100)}%`;
-      });
-      wave.addEventListener('click', (event) => {
-        const rect = wave.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-        if (audio.duration) audio.currentTime = ratio * audio.duration;
-      });
-
-      row.appendChild(play);
-      row.appendChild(wave);
-      row.appendChild(time);
-      row.appendChild(remove);
-      wrap.appendChild(row);
-
-      // Transcript (captured live while recording, when speech recognition is available)
-      const renderTranscript = (transcript: string | null) => {
-        const existing = wrap.querySelector('.voice-transcript');
-        if (existing) existing.remove();
-        if (!transcript) return;
-        const box = document.createElement('div');
-        box.className = 'voice-transcript';
-        const text = document.createElement('span');
-        text.className = 'voice-transcript-text';
-        text.textContent = transcript;
-        const copy = document.createElement('button');
-        copy.type = 'button';
-        copy.className = 'voice-transcript-copy';
-        copy.title = 'Copy transcript';
-        copy.textContent = 'Copy';
-        copy.addEventListener('click', (event) => {
-          event.stopPropagation();
-          void navigator.clipboard.writeText(transcript).then(() => {
-            copy.textContent = 'Copied';
-            window.setTimeout(() => { copy.textContent = 'Copy'; }, 1500);
-          });
-        });
-        box.appendChild(text);
-        box.appendChild(copy);
-        wrap.appendChild(box);
-      };
-      renderTranscript((node.attrs.transcript as string) || null);
-
-      wrap.appendChild(audio);
-
-      return {
-        dom: wrap,
-        update: (updated) => {
-          if (updated.type.name !== 'voiceMemo') return false;
-          node = updated;
-          audio.src = updated.attrs.dataUrl;
-          renderTranscript((updated.attrs.transcript as string) || null);
-          return true;
-        }
-      };
-    };
+    return ReactNodeViewRenderer(VoiceMemoView);
   }
 });
 

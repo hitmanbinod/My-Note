@@ -635,10 +635,10 @@ function NoteEditor({ noteId: noteIdProp }: { noteId?: string } = {}) {
                   {!isNewNote && !loadedNote?.isDeleted ? (
                     <>
                       <button type="button" onClick={() => { setOpenMenu(null); setFoldersDialogOpen(true); }}>
-                        <FolderMoveIcon /> Add to notebooks
+                        <FolderMoveIcon /> Add to notebook
                       </button>
                       <button type="button" onClick={() => { setOpenMenu(null); setExportOpen(true); }}>
-                        <ExportIcon /> Export…
+                        <ExportIcon /> Export
                       </button>
                       <button type="button" onClick={() => void shareText()}>
                         <TextIcon /> Copy as text
@@ -757,7 +757,7 @@ function NoteEditor({ noteId: noteIdProp }: { noteId?: string } = {}) {
                         <FolderMoveIcon /> Add to notebooks
                       </button>
                       <button type="button" onClick={() => { setOpenMenu(null); setHistoryOpen(true); }}>
-                        <HistoryIcon /> Version history…
+                        <HistoryIcon /> Version history
                       </button>
                       <div className="my-1 border-t border-[var(--line)]" />
                       <button type="button" onClick={() => void handleDuplicate()}>
