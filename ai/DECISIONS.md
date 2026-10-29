@@ -49,3 +49,21 @@ Context: Installer, title bar overlay and packaging target Windows.
 Decision: Windows is the only supported platform (NSIS installer, Windows-style title bar overlay).
 Reason: Scope control for a single-developer product.
 Consequences: macOS/Linux code paths are not tested; do not promise them.
+
+### 2026-10-07: Git hooks block direct commits to main
+Context: The agent system requires main to receive only verified merges.
+Decision: .githooks/pre-commit rejects commits on main unless ALLOW_MAIN=1; commit-msg enforces Conventional Commits; pre-push runs tests before updating main.
+Reason: Enforce the one-task-one-branch model mechanically instead of by convention.
+Consequences: Quick fixes on main need ALLOW_MAIN=1 or a feature branch.
+
+### 2026-10-07: No required CI status check on main yet
+Context: Required status checks are a GitHub ruleset setting; the merge workflow (local merge vs pull requests) is not decided.
+Decision: CI runs on all branches for information, but no check is marked required.
+Reason: Enforcing it now could block merges before the workflow is proven green.
+Consequences: Revisit when the merge workflow is decided (ROADMAP G4).
+
+### 2026-10-07: Rebrand executed in this order (polish first, rename after)
+Context: The UI polish batch and the rename were both pending.
+Decision: UI polish landed on main first (Major Overhaul + follow-up), then the rename to Tipot as its own commit series, then the ai/ bootstrap on a branch.
+Reason: Keeps the large rebrand diff separate from feature work for reviewability.
+Consequences: chore/ai-agent-system (bootstrap) is still unmerged — merge decision pending.

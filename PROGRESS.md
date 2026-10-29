@@ -21,7 +21,7 @@ Update when: scope, goals or platforms change.
 | Area | What exists | State |
 |---|---|---|
 | Notes | CRUD, autosave, notebooks (folders), tags, pin, star, trash/archive, search, sort menu, instant warm opens + per-note scroll restore | done |
-| Editor | TipTap v2 rich text, slash menu, tables, code blocks, paste pipeline, resizable images with float/wrap + alt-text popover, quote blocks (upright, no quote marks, ·· menu, trailing paragraph), highlight paint mode (latch + cursor + drag-apply), voice-memo pill player (48-bar dual-layer waveform, real peaks, rAF progress) | done |
+| Editor | TipTap v2 rich text, slash menu, tables, code blocks, paste pipeline, resizable images with float/wrap + alt-text popover, quote blocks (upright, no quote marks, ·· menu, trailing paragraph), highlight paint mode (latch + cursor + drag-apply), voice-memo pill player (48-bar dual-layer waveform, real peaks, rAF progress) | done (verified 2026-10-07) |
 | Embeds | Whiteboard (Excalidraw) previews inside notes; images and boards get a ·· options button; images resize via an invisible corner drag zone, boards via a circular grip | done |
 | Whiteboards | Standalone boards; back button returns to the originating note (deep links fall back to the list) | done |
 | Reader mode | Pen / highlighter (real-time drag) / text / eraser annotations, highlights (CSS Highlight API), sticky notes | done |
@@ -30,9 +30,9 @@ Update when: scope, goals or platforms change.
 | Sync | Optional Google Drive sync queue | done |
 | Backup | Export/import: JSON, ENEX, MD, HTML; local backup folders | done |
 | Updates | Auto-update from GitHub Releases (electron-updater) | done |
-| Theming | OKLCH accent ramps (12 accents), 6 page colors (theme-reactive swatches), light/dark/system, font + size settings | done |
-| Layout | Collapsible sidebar (icon rail), resizable sidebar + list, 48px merged title bar, create/settings/account in the top bar | done |
-| Notebooks | Cover image or gradient, lock, color, create/edit via FolderDialog (+ rail quick-add) | done |
+| Theming | OKLCH accent ramps (12 accents), 6 page colors (theme-reactive swatches), light/dark/system, font + size settings | done (verified 2026-10-07) |
+| Layout | Collapsible sidebar (icon rail), resizable sidebar + list, 48px merged title bar, Tipot brand header, create/settings/account in the top bar | done (verified 2026-10-07) |
+| Notebooks | Cover image or gradient, lock, color, create/edit via FolderDialog (+ rail quick-add) | done (verified 2026-10-07) |
 Update when: a feature is added, removed or changes state.
 
 ## 3. Tech stack
@@ -194,13 +194,7 @@ Update when: any of the above changes.
 
 ## 10. Status
 
-**Next up** (max 5, ordered; each ends with "done when …")
-1. Text wrap beside floated images: cursor placement and click-to-type beside the float — done when typing
-   beside a floated image feels natural in all cases.
-2. Drive sync end-to-end test pass with the current queue — done when a fresh note round-trips to Drive.
-3. Empty-whiteboard auto-delete vs. "New whiteboard" from the top bar (create → leave = deleted) — done when
-   the intended behavior is decided and documented.
-4. Bump to 1.1.1 and publish the GitHub Release so auto-update picks up all recent fixes — done when the release is out and the in-app updater prompt appears.
+**Next up:** tracked in ai/ROADMAP.md (the only work index). Top of queue: 1) decide the bootstrap merge (B2) · 2) GitHub protection rules (G1–G3, human) · 3) release the next Tipot version (REL1, after the upgrade test) · 4) floated-image cursor placement (T1).
 
 **Known issues**
 - CUA-driven browser automation clicks need a 1.1 device-pixel correction on some setups (test-harness only).
