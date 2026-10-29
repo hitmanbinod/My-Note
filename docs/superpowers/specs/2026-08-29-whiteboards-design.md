@@ -1,3 +1,5 @@
+> Superseded. Use ai/06-design-system.md and src/index.css for token names.
+
 # Whiteboards Design
 
 ## Goal

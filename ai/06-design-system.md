@@ -38,6 +38,21 @@ Chrome sizes 11 / 12 / 13 / 14 / 15 px; weights 500 and 600; tabular numbers for
 ## UI change checklist
 Tokens only · both themes · rail and expanded · keyboard · reduced motion · no duplicate controls for the same action · no box inside a box · no more than one solid accent element in the region.
 
+## Token map (older guides → this codebase)
+
+Older design guides (UI cleanup, whiteboards spec) used token names that do not exist here. Verified by grep against src/index.css (2026-10-07):
+
+| Old name | Real token |
+|---|---|
+| --bg | --app-bg |
+| --surface-1 | --panel |
+| --surface-2 | --panel-soft (hover) |
+| --surface-3 | --surface-3 (exists) |
+| --ink-2 | --ink-2 (exists; --muted aliases it) |
+| --ink-3 | --ink-3 (exists; placeholders/tertiary) |
+| --ink / --muted / --line / --line-strong / --brand / --brand-soft / --brand-text / --on-brand / --mark-* | same names (exist) |
+
+
 ## Observed differences
 - Actual token names: `--app-bg` (app background), `--panel`, `--panel-soft`, `--surface-3`, `--line`, `--line-strong`, `--ink`, `--ink-2`, `--muted` (secondary; used everywhere as the quiet text color), `--brand`, `--brand-soft`, `--brand-text`, `--on-brand`, `--brand-logo` (fixed #3761e1), `--mark-red|orange|yellow|green|blue|pink|purple|gray`. There is no separate tertiary token; placeholders use `--muted` with opacity.
 - Accents are OKLCH ramps generated at runtime by `applyAccent` (`--p-50…900`, `--brand`, `--brand-strong`); the primary Tailwind ramp is `rgb(var(--p-N) / <alpha>)` (`primary-50…900`).
